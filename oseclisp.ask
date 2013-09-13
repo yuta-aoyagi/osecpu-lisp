@@ -40,13 +40,13 @@ LOCALLABELS(1);
 
 // グローバルなレジスタ割り当て.
 VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
-int32s memmainIdx:R20;	//< memmain のうちまだ使われていない最初の添え字.
-VPtr symbuf:P21;	//< シンボルの名前を文字列として置く領域.
-int32s symbufIdx:R21;	//< symbuf のうちまだ使われていない最初の添え字.
-VPtr symidx:P22;	//< symbuf 内の添え字を置く領域.
-int32s symidxIdx:R22;	//< symidx のうちまだ使われていない最初の添え字.
+VPtr memmainPtr:P21;	//< memmain のうち未使用の領域の先頭.
+VPtr symbuf:P22;	//< シンボルの名前を文字列として置く領域.
+VPtr symbufPtr:P23;	//< symbuf のうち未使用の領域の先頭.
+VPtr symidx:P24;	//< symbuf 内の添え字を置く領域.
+VPtr symidxPtr:P25;	//< symidx のうち未使用の領域の先頭.
 
-int32s nil:R23;	//< nilの実体があるmemmainの添え字.
+#define NIL 0		//< nilは memmain の先頭.
 
 // main
 do {
@@ -56,49 +56,49 @@ do {
 	// メモリを確保する.
 	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
 	memmain = p;
+	memmainPtr = memmain;
 	junkApi_malloc(symbuf, T_UINT8, SYMBUF_SIZE);
-	symbufIdx = 0;
+	symbufPtr = symbuf;
 	junkApi_malloc(symidx, T_SINT32, SYMIDX_SIZE);
-	symidxIdx = 0;
+	symidxPtr = symidx;
 
 	// nilの実体を生成する.
-	R01 = 1; SMEM0(R01, T_SINT32, p);
-	R00 = 0; PASMEM0(R00, T_SINT32, p, R01);
-	nil = 0;
-	memmainIdx = 2;
+	// これはmemmainの先頭に置く.
+	R01 = 1; SMEM0PP(R01, T_SINT32, memmainPtr);
+	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
 
 	// symbuf に文字列`sym'を置く.
-	PASMEM0(symbufIdx, T_SINT32, symidx, symidxIdx); symidxIdx++;
-	R00 = 's'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
-	R00 = 'y'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
-	R00 = 'm'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
-	R00 = 0;   PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
+	PDIF(R00, T_UINT8, symbufPtr, symbuf); SMEM0PP(R00, T_SINT32, symidxPtr);
+	R00 = 's'; SMEM0PP(R00, T_UINT8, symbufPtr);
+	R00 = 'y'; SMEM0PP(R00, T_UINT8, symbufPtr);
+	R00 = 'm'; SMEM0PP(R00, T_UINT8, symbufPtr);
+	R00 = 0;   SMEM0PP(R00, T_UINT8, symbufPtr);
 
 	// シンボル`sym'のオブジェクトを生成する.
-	sym = memmainIdx;
-	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
-	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
-	R00 = 0; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PDIF(sym, T_SINT32, memmainPtr, memmain);
+	SMEM0PP(R01, T_SINT32, memmainPtr);
+	SMEM0PP(R01, T_SINT32, memmainPtr);
+	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
 
 	// cons := (nil.sym)
-	cons = memmainIdx;
-	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
-	R00 = 2; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
-	PALMEM0(R00, T_SINT32, memmain, nil); R00++; PASMEM0(R00, T_SINT32, memmain, nil);
-	PASMEM0(nil, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PDIF(cons, T_SINT32, memmainPtr, memmain);
+	SMEM0PP(R01, T_SINT32, memmainPtr);
+	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
+	PALMEM0(R00, T_SINT32, memmain, NIL); R00++; PASMEM0(R00, T_SINT32, memmain, NIL);
+	R00 = NIL; SMEM0PP(R00, T_SINT32, memmainPtr);
 	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	PASMEM0(sym, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	SMEM0PP(sym, T_SINT32, memmainPtr);
 
 	// cons2 := (cons.sym)
-	cons2 = memmainIdx;
-	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
-	R00 = 2; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PDIF(cons2, T_SINT32, memmainPtr, memmain);
+	SMEM0PP(R01, T_SINT32, memmainPtr);
+	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
 	PALMEM0(R00, T_SINT32, memmain, cons); R00++; PASMEM0(R00, T_SINT32, memmain, cons);
-	PASMEM0(cons, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	SMEM0PP(cons, T_SINT32, memmainPtr);
 	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	PASMEM0(sym, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	SMEM0PP(sym, T_SINT32, memmainPtr);
 
-	print(nil);
+	print(NIL);
 	junkApi_putchar('\n');
 	print(sym);
 	junkApi_putchar('\n');
