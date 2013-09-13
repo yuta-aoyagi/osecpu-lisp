@@ -51,7 +51,7 @@ int32s nil:R23;	//< nilの実体があるmemmainの添え字.
 // main
 do {
 	VPtr p:P01;
-	int32s sym:R02;
+	int32s sym:R02, cons:R03, cons2:R04;
 
 	// メモリを確保する.
 	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
@@ -80,9 +80,31 @@ do {
 	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
 	R00 = 0; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
 
+	// cons := (nil.sym)
+	cons = memmainIdx;
+	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	R00 = 2; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PALMEM0(R00, T_SINT32, memmain, nil); R00++; PASMEM0(R00, T_SINT32, memmain, nil);
+	PASMEM0(nil, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
+	PASMEM0(sym, T_SINT32, memmain, memmainIdx); memmainIdx++;
+
+	// cons2 := (cons.sym)
+	cons2 = memmainIdx;
+	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	R00 = 2; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PALMEM0(R00, T_SINT32, memmain, cons); R00++; PASMEM0(R00, T_SINT32, memmain, cons);
+	PASMEM0(cons, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
+	PASMEM0(sym, T_SINT32, memmain, memmainIdx); memmainIdx++;
+
 	print(nil);
 	junkApi_putchar('\n');
 	print(sym);
+	junkApi_putchar('\n');
+	print(cons);
+	junkApi_putchar('\n');
+	print(cons2);
 }
 
 /*
@@ -119,6 +141,19 @@ beginFunc(L_print); do {
 			PDIF(i, T_UINT8, q, p);
 			i--;
 			junkApi_putString2(i, p);
+			break;
+		}
+		if (i == 2) {
+			int32s t:R01;
+			t = x + 1;
+			junkApi_putchar('(');
+			PALMEM0(i, T_SINT32, memmain, t);
+			print(i);
+			junkApi_putchar('.');
+			t++;
+			PALMEM0(i, T_SINT32, memmain, t);
+			print(i);
+			junkApi_putchar(')');
 			break;
 		}
 		BUG_EXIT();
