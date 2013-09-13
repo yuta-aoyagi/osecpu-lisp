@@ -51,6 +51,7 @@ int32s nil:R23;	//< nilの実体があるmemmainの添え字.
 // main
 do {
 	VPtr p:P01;
+	int32s sym:R02;
 
 	// メモリを確保する.
 	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
@@ -66,7 +67,22 @@ do {
 	nil = 0;
 	memmainIdx = 2;
 
+	// symbuf に文字列`sym'を置く.
+	PASMEM0(symbufIdx, T_SINT32, symidx, symidxIdx); symidxIdx++;
+	R00 = 's'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
+	R00 = 'y'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
+	R00 = 'm'; PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
+	R00 = 0;   PASMEM0(R00, T_UINT8, symbuf, symbufIdx); symbufIdx++;
+
+	// シンボル`sym'のオブジェクトを生成する.
+	sym = memmainIdx;
+	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	PASMEM0(R01, T_SINT32, memmain, memmainIdx); memmainIdx++;
+	R00 = 0; PASMEM0(R00, T_SINT32, memmain, memmainIdx); memmainIdx++;
+
 	print(nil);
+	junkApi_putchar('\n');
+	print(sym);
 }
 
 /*
@@ -88,6 +104,21 @@ beginFunc(L_print); do {
 	do {
 		if (i == 0) {
 			junkApi_putConstString('nil');
+			break;
+		}
+		if (i == 1) {
+			VPtr p:P01, q:P02;
+			x++;
+			PALMEM0(i, T_SINT32, memmain, x);
+			PADD(p, T_UINT8, symbuf, i);
+			q = p;
+			do {
+				LMEM0PP(i, T_UINT8, q);
+				if (i != 0) continue;
+			}
+			PDIF(i, T_UINT8, q, p);
+			i--;
+			junkApi_putString2(i, p);
 			break;
 		}
 		BUG_EXIT();
