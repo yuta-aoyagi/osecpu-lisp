@@ -1,0 +1,95 @@
+/**
+ * @file oseclisp.ask
+ * @brief OSECPU-VM上で動くLisp風言語のインタプリタ.
+ * @author Yuta Aoyagi
+ * @since 2013-09-10
+ */
+
+#include "osecpu_ask.h"
+
+/// memmain の大きさ(T_SINT32単位).
+#define MEMMAIN_SIZE	16 * 1024
+/// symbuf の大きさ(T_UINT8単位).
+#define SYMBUF_SIZE	16 * 1024
+/// symidx の大きさ(T_SINT32).
+#define SYMIDX_SIZE	16 * 1024
+
+/**
+ * @def BUG()
+ * @brief #LISP_DEBUG がマクロ定義されていれば文字列"bug (行番号)"を標準出力に送る.
+ * @note このマクロはR38を破壊する.
+ * テンポラリのレジスタR30～R3Bのうち, R30はAPIの機能番号に, R31は引数である整数配列の長さに使われる.
+ * R32とその先のいくつかは, 将来junk_putStringDec(がラップする生のAPI)が拡張される際に使われる可能性があると判断した(cf. page0053の下のほう).
+ * R3Bとその前のいくつかは, 複雑な式の評価時にテンポラリとして使われるらしい(cf. page0043の(1)).
+ * 以上の理由から, しばらくは使われないであろうR38を行番号の格納に使う.
+ */
+#ifdef LISP_DEBUG
+	#define BUG() R38 = __LINE__; junkApi_putStringDec('bug \1', R38, 11, 1)
+#else
+	#define BUG() /* nothing to do */
+#endif
+
+/// #BUG() を呼んでからプログラムを終了する.
+#define BUG_EXIT() BUG(); jnukApi_exit(1)
+
+// 関数先頭のラベル宣言.
+#define L_print	LOCAL(0)
+LOCALLABELS(1);
+
+#define print(x) R30 = x; CALL(L_print)
+
+// グローバルなレジスタ割り当て.
+VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
+int32s memmainIdx:R20;	//< memmain のうちまだ使われていない最初の添え字.
+VPtr symbuf:P21;	//< シンボルの名前を文字列として置く領域.
+int32s symbufIdx:R21;	//< symbuf のうちまだ使われていない最初の添え字.
+VPtr symidx:P22;	//< symbuf 内の添え字を置く領域.
+int32s symidxIdx:R22;	//< symidx のうちまだ使われていない最初の添え字.
+
+int32s nil:R23;	//< nilの実体があるmemmainの添え字.
+
+// main
+do {
+	VPtr p:P01;
+
+	// メモリを確保する.
+	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
+	memmain = p;
+	junkApi_malloc(symbuf, T_UINT8, SYMBUF_SIZE);
+	symbufIdx = 0;
+	junkApi_malloc(symidx, T_SINT32, SYMIDX_SIZE);
+	symidxIdx = 0;
+
+	// nilの実体を生成する.
+	R01 = 1; SMEM0(R01, T_SINT32, p);
+	R00 = 0; PASMEM0(R00, T_SINT32, p, R01);
+	nil = 0;
+	memmainIdx = 2;
+
+	print(nil);
+}
+
+/*
+ * @brief 指定されたオブジェクトを表示する.
+ *
+ * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
+ * @param[in] x:R30 表示するオブジェクト.
+ */
+beginFunc(L_print); do {
+	int32s i:R00, x:R30;
+
+	#ifdef LISP_DEBUG
+		PALMEM0(i, T_SINT32, memmain, x);
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+
+	x++;
+	PALMEM0(i, T_SINT32, memmain, x);
+	do {
+		if (i == 0) {
+			junkApi_putConstString('nil');
+			break;
+		}
+		BUG_EXIT();
+	}
+} endFunc();
