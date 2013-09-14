@@ -7,13 +7,6 @@
 
 #include "osecpu_ask.h"
 
-/// memmain の大きさ(T_SINT32単位).
-#define MEMMAIN_SIZE	16 * 1024
-/// symbuf の大きさ(T_UINT8単位).
-#define SYMBUF_SIZE	16 * 1024
-/// symidx の大きさ(T_SINT32).
-#define SYMIDX_SIZE	16 * 1024
-
 /**
  * @def BUG()
  * @brief #LISP_DEBUG がマクロ定義されていれば文字列"bug (行番号)"を標準出力に送る.
@@ -32,73 +25,89 @@
 /// #BUG() を呼んでからプログラムを終了する.
 #define BUG_EXIT() BUG(); jnukApi_exit(1)
 
-// 関数先頭のラベル宣言.
-#define L_print	LOCAL(0)
-LOCALLABELS(1);
+// 関数・データのラベル宣言.
+#define L_STRINGS LOCAL(0)
+#define L_incRef LOCAL(1)
+#define L_newCons LOCAL(2)
+#define L_print LOCAL(3)
+LOCALLABELS(4);
 
-#define print(x) R30 = x; CALL(L_print)
+#define incRef(x) P31 = x; CALL(L_incRef)
+#define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
+#define print(x) P31 = x; CALL(L_print)
+
+// シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
+DAT_SA(L_STRINGS, T_UINT8, 11);
+DB(3, 'n', 'i', 'l');
+DB(6, 's', 'y', 'm', 'b', 'o', 'l');
+DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
-VPtr memmainPtr:P21;	//< memmain のうち未使用の領域の先頭.
-VPtr symbuf:P22;	//< シンボルの名前を文字列として置く領域.
-VPtr symbufPtr:P23;	//< symbuf のうち未使用の領域の先頭.
-VPtr symidx:P24;	//< symbuf 内の添え字を置く領域.
-VPtr symidxPtr:P25;	//< symidx のうち未使用の領域の先頭.
+VPtr lastSym:P20, nil:P21;
 
-#define NIL 0		//< nilは memmain の先頭.
+/*
+ * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
+ * vptr[0]はsint32の先頭へのポインタ.
+ * sint32[0]は参照カウント, sint32[1]はオブジェクトの種類を現す整数値である.
+ * 今のところ, 0はシンボル, 1はconsセルを表すことにしている.
+ * ここまではすべてのオブジェクトに共通の構造である.
+ * シンボルの場合は, vptr[1]にT_UINT8の配列の先頭へのポインタ, vptr[2]に直前に現れた新規のシンボルへのポインタが入る.
+ * また, sint32[2]にシンボルの名前文字列の長さがバイト単位で入る.
+ * consセルの場合は, vptr[1]とvptr[2]にそれぞれcarとcdrが入る.
+ */
 
 // main
 do {
-	VPtr p:P01;
-	int32s sym:R02, cons:R03, cons2:R04;
+	VPtr p:P01, q:P02, r:P03;
+	int32s i:R00, j:R01;
 
-	// メモリを確保する.
-	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
-	memmain = p;
-	memmainPtr = memmain;
-	junkApi_malloc(symbuf, T_UINT8, SYMBUF_SIZE);
-	symbufPtr = symbuf;
-	junkApi_malloc(symidx, T_SINT32, SYMIDX_SIZE);
-	symidxPtr = symidx;
+	// シンボルテーブルの番兵を生成する.
+	junkApi_malloc(p, T_SINT32, 3);		// lastSym: pointer to head of array {1, 0, 0}.
+	junkApi_malloc(lastSym, T_VPTR, 1);
+	PSMEM0(p, T_VPTR, lastSym);
+	i = 1; SMEM0PP(i, T_SINT32, p);
+	i = 0; SMEM0PP(i, T_SINT32, p);
+	SMEM0PP(i, T_SINT32, p);
 
-	// nilの実体を生成する.
-	// これはmemmainの先頭に置く.
-	R01 = 1; SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
+	// シンボル`nil'を生成する.
+	junkApi_malloc(p, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
+	lastSym = p;
+	PLIMM(r, L_STRINGS);
+	LMEM0PP(j, T_UINT8, r);
+	i = 1; PAPSMEM0(r, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 3);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	i = 0; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(j, T_SINT32, q);
 
-	// symbuf に文字列`sym'を置く.
-	PDIF(R00, T_UINT8, symbufPtr, symbuf); SMEM0PP(R00, T_SINT32, symidxPtr);
-	R00 = 's'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 'y'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 'm'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 0;   SMEM0PP(R00, T_UINT8, symbufPtr);
+	incRef(lastSym);
+	nil = lastSym;
 
-	// シンボル`sym'のオブジェクトを生成する.
-	PDIF(sym, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
+	// シンボル`symbol'を生成する.
+	junkApi_malloc(p, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
+	lastSym = p;
+	PADD(r, T_UINT8, r, j);
+	LMEM0PP(j, T_UINT8, r);
+	i = 1; PAPSMEM0(r, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 3);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	i = 0; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(j, T_SINT32, q);
 
-	// cons := (nil.sym)
-	PDIF(cons, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, NIL); R00++; PASMEM0(R00, T_SINT32, memmain, NIL);
-	R00 = NIL; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	SMEM0PP(sym, T_SINT32, memmainPtr);
+	VPtr sym:P04;
+	incRef(lastSym);
+	sym = lastSym;
 
-	// cons2 := (cons.sym)
-	PDIF(cons2, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, cons); R00++; PASMEM0(R00, T_SINT32, memmain, cons);
-	SMEM0PP(cons, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	SMEM0PP(sym, T_SINT32, memmainPtr);
+	// consセルを2つ生成する.
+	VPtr cons:P05, cons2:P06;
+	newCons(cons, nil, sym);
+	newCons(cons2, cons, sym);
 
-	print(NIL);
+	print(nil);
 	junkApi_putchar('\n');
 	print(sym);
 	junkApi_putchar('\n');
@@ -108,51 +117,82 @@ do {
 }
 
 /*
+ * @brief 指定されたオブジェクトの参照カウントを1増加する.
+ *
+ * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
+ * @param[in,out] x:P31 対象とするオブジェクト.
+ */
+beginFunc(L_incRef); do {
+	VPtr x:P31, p:P01;
+	int32s i:R00;
+
+	PLMEM0(p, T_VPTR, x);
+	LMEM0(i, T_SINT32, p);
+	#ifdef LISP_DEBUG
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+	i++;
+	SMEM0PP(i, T_SINT32, p);
+} endFunc();
+
+/*
+ * @brief 指定された2つのオブジェクトからconsセルを生成する.
+ * @param[in] x:P31 car.
+ * @param[in] y:P32 cdr.
+ * @retval (P31)生成されたconsセル.
+ */
+beginFunc(L_newCons); do {
+	VPtr x:P31, y:P32, p:P01, q:P02, a:P03, b:P04;
+	int32s i:R00;
+
+	a = x; b = y;
+	junkApi_malloc(p, T_VPTR, 3);
+	incRef(a);
+	i = 1; PAPSMEM0(a, T_VPTR, p, i);
+	incRef(b);
+	i = 2; PAPSMEM0(b, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 2);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(i, T_SINT32, q);
+
+	P31 = p;
+} endFunc();
+
+/*
  * @brief 指定されたオブジェクトを表示する.
  *
  * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
- * @param[in] x:R30 表示するオブジェクト.
+ * @param[in] x:P31 表示するオブジェクト.
  */
 beginFunc(L_print); do {
-	int32s i:R00, x:R30;
+	VPtr x:P31, p:P01;
+	int32s i:R00;
 
+	PLMEM0(p, T_VPTR, x);
 	#ifdef LISP_DEBUG
-		PALMEM0(i, T_SINT32, memmain, x);
+		LMEM0(i, T_SINT32, p);
 		if (i <= 0) { BUG_EXIT(); }
 	#endif
 
-	x++;
-	PALMEM0(i, T_SINT32, memmain, x);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
 	do {
 		if (i == 0) {
-			junkApi_putConstString('nil');
+			VPtr q:P02;
+			i = 1; PAPLMEM0(q, T_VPTR, x, i);
+			i = 2; PALMEM0(i, T_SINT32, p, i);
+			junkApi_putString2(i, q);
 			break;
 		}
 		if (i == 1) {
-			VPtr p:P01, q:P02;
-			x++;
-			PALMEM0(i, T_SINT32, memmain, x);
-			PADD(p, T_UINT8, symbuf, i);
-			q = p;
-			do {
-				LMEM0PP(i, T_UINT8, q);
-				if (i != 0) continue;
-			}
-			PDIF(i, T_UINT8, q, p);
-			i--;
-			junkApi_putString2(i, p);
-			break;
-		}
-		if (i == 2) {
-			int32s t:R01;
-			t = x + 1;
+			p = x;
 			junkApi_putchar('(');
-			PALMEM0(i, T_SINT32, memmain, t);
-			print(i);
+			VPtr q:P02;
+			i = 1; PAPLMEM0(q, T_VPTR, p, i);
+			print(q);
 			junkApi_putchar('.');
-			t++;
-			PALMEM0(i, T_SINT32, memmain, t);
-			print(i);
+			i = 2; PAPLMEM0(q, T_VPTR, p, i);
+			print(q);
 			junkApi_putchar(')');
 			break;
 		}
