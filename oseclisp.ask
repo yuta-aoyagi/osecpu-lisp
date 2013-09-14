@@ -36,10 +36,12 @@
 #define L_print	LOCAL(0)
 #define L_newPrint LOCAL(1)
 #define L_STRINGS LOCAL(2)
-LOCALLABELS(3);
+#define L_incRef LOCAL(3)
+LOCALLABELS(4);
 
 #define print(x) R30 = x; CALL(L_print)
 #define newPrint(x) P31 = x; CALL(L_newPrint)
+#define incRef(x) P31 = x; CALL(L_incRef)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 11);
@@ -154,10 +156,7 @@ do {
 	i = 0; SMEM0PP(i, T_SINT32, q);
 	SMEM0PP(j, T_SINT32, q);
 
-	PLMEM0(p, T_VPTR, lastSym);
-	LMEM0(i, T_SINT32, p);
-	i++;
-	SMEM0PP(i, T_SINT32, p);
+	incRef(lastSym);
 	nil = lastSym;
 
 	// シンボル`symbol'を生成する.
@@ -174,25 +173,16 @@ do {
 	SMEM0PP(j, T_SINT32, q);
 
 	VPtr sym:P04;
-	PLMEM0(p, T_VPTR, lastSym);
-	LMEM0(i, T_SINT32, p);
-	i++;
-	SMEM0PP(i, T_SINT32, p);
+	incRef(lastSym);
 	sym = lastSym;
 
 	// cons := (nil.symbol)
 	VPtr cons:P05, cons2:P06;
 	junkApi_malloc(p, T_VPTR, 3);
 	cons = p;
-	PLMEM0(q, T_VPTR, nil);
-	LMEM0(i, T_SINT32, q);
-	i++;
-	SMEM0PP(i, T_SINT32, q);
+	incRef(nil);
 	i = 1; PAPSMEM0(nil, T_VPTR, p, i);
-	PLMEM0(q, T_VPTR, sym);
-	LMEM0(i, T_SINT32, q);
-	i++;
-	SMEM0PP(i, T_SINT32, q);
+	incRef(sym);
 	i = 2; PAPSMEM0(sym, T_VPTR, p, i);
 	junkApi_malloc(q, T_SINT32, 2);
 	PSMEM0(q, T_VPTR, p);
@@ -202,15 +192,9 @@ do {
 	// cons2 := (cons.symbol)
 	junkApi_malloc(p, T_VPTR, 3);
 	cons2 = p;
-	PLMEM0(q, T_VPTR, cons);
-	LMEM0(i, T_SINT32, q);
-	i++;
-	SMEM0PP(i, T_SINT32, q);
+	incRef(cons);
 	i = 1; PAPSMEM0(cons, T_VPTR, p, i);
-	PLMEM0(q, T_VPTR, sym);
-	LMEM0(i, T_SINT32, q);
-	i++;
-	SMEM0PP(i, T_SINT32, q);
+	incRef(sym);
 	i = 2; PAPSMEM0(sym, T_VPTR, p, i);
 	junkApi_malloc(q, T_SINT32, 2);
 	PSMEM0(q, T_VPTR, p);
@@ -313,4 +297,23 @@ beginFunc(L_newPrint); do {
 		}
 		BUG_EXIT();
 	}
+} endFunc();
+
+/*
+ * @brief 指定されたオブジェクトの参照カウントを1増加する.
+ *
+ * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
+ * @param[in,out] x:P31 対象とするオブジェクト.
+ */
+beginFunc(L_incRef); do {
+	VPtr x:P31, p:P01;
+	int32s i:R00;
+
+	PLMEM0(p, T_VPTR, x);
+	LMEM0(i, T_SINT32, p);
+	#ifdef LISP_DEBUG
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+	i++;
+	SMEM0PP(i, T_SINT32, p);
 } endFunc();
