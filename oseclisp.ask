@@ -26,15 +26,15 @@
 #define BUG_EXIT() BUG(); jnukApi_exit(1)
 
 // 関数・データのラベル宣言.
-#define L_newPrint LOCAL(1)
-#define L_STRINGS LOCAL(2)
-#define L_incRef LOCAL(3)
-#define L_newCons LOCAL(4)
-LOCALLABELS(5);
+#define L_STRINGS LOCAL(0)
+#define L_incRef LOCAL(1)
+#define L_newCons LOCAL(2)
+#define L_print LOCAL(3)
+LOCALLABELS(4);
 
-#define newPrint(x) P31 = x; CALL(L_newPrint)
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
+#define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 11);
@@ -43,7 +43,7 @@ DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr lastSym:P21, nil:P27;
+VPtr lastSym:P20, nil:P21;
 
 /*
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
@@ -107,55 +107,14 @@ do {
 	newCons(cons, nil, sym);
 	newCons(cons2, cons, sym);
 
-	newPrint(nil);
+	print(nil);
 	junkApi_putchar('\n');
-	newPrint(sym);
+	print(sym);
 	junkApi_putchar('\n');
-	newPrint(cons);
+	print(cons);
 	junkApi_putchar('\n');
-	newPrint(cons2);
+	print(cons2);
 }
-
-/*
- * @brief 指定されたオブジェクトを表示する.
- *
- * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
- * @param[in] x:P31 表示するオブジェクト.
- */
-beginFunc(L_newPrint); do {
-	VPtr x:P31, p:P01;
-	int32s i:R00;
-
-	PLMEM0(p, T_VPTR, x);
-	#ifdef LISP_DEBUG
-		LMEM0(i, T_SINT32, p);
-		if (i <= 0) { BUG_EXIT(); }
-	#endif
-
-	i = 1; PALMEM0(i, T_SINT32, p, i);
-	do {
-		if (i == 0) {
-			VPtr q:P02;
-			i = 1; PAPLMEM0(q, T_VPTR, x, i);
-			i = 2; PALMEM0(i, T_SINT32, p, i);
-			junkApi_putString2(i, q);
-			break;
-		}
-		if (i == 1) {
-			p = x;
-			junkApi_putchar('(');
-			VPtr q:P02;
-			i = 1; PAPLMEM0(q, T_VPTR, p, i);
-			newPrint(q);
-			junkApi_putchar('.');
-			i = 2; PAPLMEM0(q, T_VPTR, p, i);
-			newPrint(q);
-			junkApi_putchar(')');
-			break;
-		}
-		BUG_EXIT();
-	}
-} endFunc();
 
 /*
  * @brief 指定されたオブジェクトの参照カウントを1増加する.
@@ -198,4 +157,45 @@ beginFunc(L_newCons); do {
 	SMEM0PP(i, T_SINT32, q);
 
 	P31 = p;
+} endFunc();
+
+/*
+ * @brief 指定されたオブジェクトを表示する.
+ *
+ * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
+ * @param[in] x:P31 表示するオブジェクト.
+ */
+beginFunc(L_print); do {
+	VPtr x:P31, p:P01;
+	int32s i:R00;
+
+	PLMEM0(p, T_VPTR, x);
+	#ifdef LISP_DEBUG
+		LMEM0(i, T_SINT32, p);
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	do {
+		if (i == 0) {
+			VPtr q:P02;
+			i = 1; PAPLMEM0(q, T_VPTR, x, i);
+			i = 2; PALMEM0(i, T_SINT32, p, i);
+			junkApi_putString2(i, q);
+			break;
+		}
+		if (i == 1) {
+			p = x;
+			junkApi_putchar('(');
+			VPtr q:P02;
+			i = 1; PAPLMEM0(q, T_VPTR, p, i);
+			print(q);
+			junkApi_putchar('.');
+			i = 2; PAPLMEM0(q, T_VPTR, p, i);
+			print(q);
+			junkApi_putchar(')');
+			break;
+		}
+		BUG_EXIT();
+	}
 } endFunc();
