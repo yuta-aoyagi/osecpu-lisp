@@ -115,36 +115,43 @@ do {
 	print(cons2);
 }
 
-VPtr symtbl:P21, nil:P27;
+/*
+ * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
+ * vptr[0]はsint32の先頭へのポインタ.
+ * sint32[0]は参照カウント, sint32[1]はオブジェクトの種類を現す整数値である.
+ * 今のところ, 0はシンボル, 1はconsセルを表すことにしている.
+ * ここまではすべてのオブジェクトに共通の構造である.
+ * シンボルの場合は, vptr[1]にT_UINT8の配列の先頭へのポインタ, vptr[2]に直前に現れた新規のシンボルへのポインタが入る.
+ * また, sint32[2]にシンボルの名前文字列の長さがバイト単位で入る.
+ */
+
+VPtr lastSym:P21, nil:P27;
 
 do {
 	VPtr p:P01, q:P02;
 	int32s i:R00, j:R01;
 
 	// シンボルテーブルの番兵を生成する.
-	junkApi_malloc(p, T_SINT32, 1);		// symtbl[0]: 不定, symtbl[1]: pointer to (int32s)1.
-	i = 0; SMEM0(i, T_SINT32, p);
-	junkApi_malloc(symtbl, T_VPTR, 2);
-	i = 1; PAPSMEM0(p, T_VPTR, symtbl, i);
-
-	// 文字列`nil'をシンボルテーブルに置く.
-	junkApi_malloc(p, T_VPTR, 3);		// symtbl[0]: prev. symtbl.
-	PSMEM0(symtbl, T_VPTR, p);
-	symtbl = p;
-	PLIMM(q, L_STRINGS);		// symtbl[1]: pointer to length.
-	LMEM0PP(j, T_UINT8, q);
-	junkApi_malloc(p, T_SINT32, 1);
-	SMEM0(j, T_SINT32, p);
-	i = 1; PAPSMEM0(p, T_VPTR, symtbl, i);
-	i = 2; PAPSMEM0(q, T_VPTR, symtbl, i);		// symtbl[2]: pointer to head of string.
+	junkApi_malloc(p, T_SINT32, 3);		// lastSym: pointer to head of array {1, 0, 0}.
+	junkApi_malloc(lastSym, T_VPTR, 1);
+	PSMEM0(p, T_VPTR, lastSym);
+	i = 1; SMEM0PP(i, T_SINT32, p);
+	i = 0; SMEM0PP(i, T_SINT32, p);
+	SMEM0PP(i, T_SINT32, p);
 
 	// シンボル`nil'を生成する.
-	junkApi_malloc(nil, T_VPTR, 2);		// nil[0]: pointer to head of array {1, 0}
-	junkApi_malloc(p, T_SINT32, 2);
-	PSMEM0(p, T_VPTR, nil);
-	i = 1; SMEM0PP(i, T_SINT32, p);
-	i = 0; SMEM0(i, T_SINT32, p);
-	i = 1; PAPSMEM0(symtbl, T_VPTR, nil, i);	// nil[1]: pointer to entry of symtbl `nil'
+	junkApi_malloc(p, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
+	lastSym = p;
+	PLIMM(q, L_STRINGS);
+	LMEM0PP(j, T_UINT8, q);
+	i = 1; PAPSMEM0(q, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 3);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	i = 0; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(j, T_SINT32, q);
+	nil = lastSym;
 
 	junkApi_putchar2('\n', '\n');
 	newPrint(nil);
@@ -217,13 +224,9 @@ beginFunc(L_newPrint); do {
 	do {
 		if (i == 0) {
 			VPtr q:P02;
-			i = 1; PAPLMEM0(p, T_VPTR, x, i);
-			PADD(p, T_VPTR, p, i);
-			PLMEM0(q, T_VPTR, p);
-			LMEM0(i, T_SINT32, q);
-			PADDI(q, T_VPTR, p, 1);
-			PLMEM0(p, T_VPTR, q);
-			junkApi_putString2(i, p);
+			i = 1; PAPLMEM0(q, T_VPTR, x, i);
+			i = 2; PALMEM0(i, T_SINT32, p, i);
+			junkApi_putString2(i, q);
 			break;
 		}
 		BUG_EXIT();
