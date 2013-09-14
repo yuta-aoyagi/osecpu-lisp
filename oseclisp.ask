@@ -42,8 +42,9 @@ LOCALLABELS(3);
 #define newPrint(x) P31 = x; CALL(L_newPrint)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 4);
+DAT_SA(L_STRINGS, T_UINT8, 11);
 DB(3, 'n', 'i', 'l');
+DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
@@ -158,8 +159,29 @@ do {
 	SMEM0PP(i, T_SINT32, p);
 	nil = lastSym;
 
+	junkApi_malloc(p, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
+	lastSym = p;
+	PADD(r, T_UINT8, r, j);
+	LMEM0PP(j, T_UINT8, r);
+	i = 1; PAPSMEM0(r, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 3);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	i = 0; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(j, T_SINT32, q);
+
+	VPtr sym:P04;
+	PLMEM0(p, T_VPTR, lastSym);
+	LMEM0(i, T_SINT32, p);
+	i++;
+	SMEM0PP(i, T_SINT32, p);
+	sym = lastSym;
+
 	junkApi_putchar2('\n', '\n');
 	newPrint(nil);
+	junkApi_putchar('\n');
+	newPrint(sym);
 }
 
 /*
