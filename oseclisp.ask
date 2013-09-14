@@ -128,7 +128,7 @@ do {
 VPtr lastSym:P21, nil:P27;
 
 do {
-	VPtr p:P01, q:P02;
+	VPtr p:P01, q:P02, r:P03;
 	int32s i:R00, j:R01;
 
 	// シンボルテーブルの番兵を生成する.
@@ -143,9 +143,9 @@ do {
 	junkApi_malloc(p, T_VPTR, 3);
 	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
 	lastSym = p;
-	PLIMM(q, L_STRINGS);
-	LMEM0PP(j, T_UINT8, q);
-	i = 1; PAPSMEM0(q, T_VPTR, p, i);
+	PLIMM(r, L_STRINGS);
+	LMEM0PP(j, T_UINT8, r);
+	i = 1; PAPSMEM0(r, T_VPTR, p, i);
 	junkApi_malloc(q, T_SINT32, 3);
 	PSMEM0(q, T_VPTR, p);
 	i = 1; SMEM0PP(i, T_SINT32, q);
