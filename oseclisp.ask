@@ -124,6 +124,7 @@ do {
  * ここまではすべてのオブジェクトに共通の構造である.
  * シンボルの場合は, vptr[1]にT_UINT8の配列の先頭へのポインタ, vptr[2]に直前に現れた新規のシンボルへのポインタが入る.
  * また, sint32[2]にシンボルの名前文字列の長さがバイト単位で入る.
+ * consセルの場合は, vptr[1]とvptr[2]にそれぞれcarとcdrが入る.
  */
 
 VPtr lastSym:P21, nil:P27;
@@ -179,10 +180,51 @@ do {
 	SMEM0PP(i, T_SINT32, p);
 	sym = lastSym;
 
+	// cons := (nil.symbol)
+	VPtr cons:P05, cons2:P06;
+	junkApi_malloc(p, T_VPTR, 3);
+	cons = p;
+	PLMEM0(q, T_VPTR, nil);
+	LMEM0(i, T_SINT32, q);
+	i++;
+	SMEM0PP(i, T_SINT32, q);
+	i = 1; PAPSMEM0(nil, T_VPTR, p, i);
+	PLMEM0(q, T_VPTR, sym);
+	LMEM0(i, T_SINT32, q);
+	i++;
+	SMEM0PP(i, T_SINT32, q);
+	i = 2; PAPSMEM0(sym, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 2);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(i, T_SINT32, q);
+
+	// cons2 := (cons.symbol)
+	junkApi_malloc(p, T_VPTR, 3);
+	cons2 = p;
+	PLMEM0(q, T_VPTR, cons);
+	LMEM0(i, T_SINT32, q);
+	i++;
+	SMEM0PP(i, T_SINT32, q);
+	i = 1; PAPSMEM0(cons, T_VPTR, p, i);
+	PLMEM0(q, T_VPTR, sym);
+	LMEM0(i, T_SINT32, q);
+	i++;
+	SMEM0PP(i, T_SINT32, q);
+	i = 2; PAPSMEM0(sym, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 2);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(i, T_SINT32, q);
+
 	junkApi_putchar2('\n', '\n');
 	newPrint(nil);
 	junkApi_putchar('\n');
 	newPrint(sym);
+	junkApi_putchar('\n');
+	newPrint(cons);
+	junkApi_putchar('\n');
+	newPrint(cons2);
 }
 
 /*
@@ -255,6 +297,18 @@ beginFunc(L_newPrint); do {
 			i = 1; PAPLMEM0(q, T_VPTR, x, i);
 			i = 2; PALMEM0(i, T_SINT32, p, i);
 			junkApi_putString2(i, q);
+			break;
+		}
+		if (i == 1) {
+			p = x;
+			junkApi_putchar('(');
+			VPtr q:P02;
+			i = 1; PAPLMEM0(q, T_VPTR, p, i);
+			newPrint(q);
+			junkApi_putchar('.');
+			i = 2; PAPLMEM0(q, T_VPTR, p, i);
+			newPrint(q);
+			junkApi_putchar(')');
 			break;
 		}
 		BUG_EXIT();
