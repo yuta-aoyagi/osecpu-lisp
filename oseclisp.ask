@@ -34,9 +34,11 @@
 
 // 関数先頭のラベル宣言.
 #define L_print	LOCAL(0)
-LOCALLABELS(1);
+#define L_newPrint LOCAL(1)
+LOCALLABELS(2);
 
 #define print(x) R30 = x; CALL(L_print)
+#define newPrint(x) P31 = x; CALL(L_newPrint)
 
 // グローバルなレジスタ割り当て.
 VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
@@ -107,6 +109,44 @@ do {
 	print(cons2);
 }
 
+VPtr symtbl:P21, nil:P27;
+
+do {
+	VPtr p:P01, q:P02;
+	int32s i:R00, j:R01;
+
+	// シンボルテーブルの番兵を生成する.
+	junkApi_malloc(p, T_SINT32, 1);		// symtbl[0]: 不定, symtbl[1]: pointer to (int32s)1.
+	i = 0; SMEM0(i, T_SINT32, p);
+	junkApi_malloc(symtbl, T_VPTR, 2);
+	i = 1; PAPSMEM0(p, T_VPTR, symtbl, i);
+
+	// 文字列`nil'をシンボルテーブルに置く.
+	junkApi_malloc(p, T_VPTR, 3);		// symtbl[0]: prev. symtbl.
+	PSMEM0(symtbl, T_VPTR, p);
+	symtbl = p;
+	junkApi_malloc(p, T_SINT32, 1);		// symtbl[1]: pointer to (int32s)3.
+	i = 3; SMEM0(i, T_SINT32, p);
+	i = 1; PAPSMEM0(p, T_VPTR, symtbl, i);
+	junkApi_malloc(p, T_UINT8, 3);		// symtbl[2]: pointer to head of string `nil'.
+	i = 2; PAPSMEM0(p, T_VPTR, symtbl, i);
+	i = 'n'; SMEM0PP(i, T_UINT8, p);
+	i = 'i'; SMEM0PP(i, T_UINT8, p);
+	i = 'l'; SMEM0(i, T_UINT8, p);
+
+	// シンボル`nil'を生成する.
+	junkApi_malloc(nil, T_VPTR, 2);		// nil[0]: pointer to head of array {1, 0}
+	junkApi_malloc(p, T_SINT32, 2);
+	PSMEM0(p, T_VPTR, nil);
+	i = 1; SMEM0PP(i, T_SINT32, p);
+	i = 0; SMEM0(i, T_SINT32, p);
+	i = 1; PAPSMEM0(symtbl, T_VPTR, nil, i);	// nil[1]: pointer to entry of symtbl `nil'
+
+	junkApi_putchar2('\n', '\n');
+	print(NIL);
+	newPrint(nil);
+}
+
 /*
  * @brief 指定されたオブジェクトを表示する.
  *
@@ -154,6 +194,33 @@ beginFunc(L_print); do {
 			PALMEM0(i, T_SINT32, memmain, t);
 			print(i);
 			junkApi_putchar(')');
+			break;
+		}
+		BUG_EXIT();
+	}
+} endFunc();
+
+beginFunc(L_newPrint); do {
+	VPtr x:P31, p:P01;
+	int32s i:R00;
+
+	PLMEM0(p, T_VPTR, x);
+	#ifdef LISP_DEBUG
+		LMEM0(i, T_SINT32, p);
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	do {
+		if (i == 0) {
+			VPtr q:P02;
+			i = 1; PAPLMEM0(p, T_VPTR, x, i);
+			PADD(p, T_VPTR, p, i);
+			PLMEM0(q, T_VPTR, p);
+			LMEM0(i, T_SINT32, q);
+			PADDI(p, T_VPTR, p, 1);
+			PLMEM0(p, T_VPTR, p);
+			junkApi_putString2(i, p);
 			break;
 		}
 		BUG_EXIT();
