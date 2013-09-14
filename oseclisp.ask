@@ -151,6 +151,11 @@ do {
 	i = 1; SMEM0PP(i, T_SINT32, q);
 	i = 0; SMEM0PP(i, T_SINT32, q);
 	SMEM0PP(j, T_SINT32, q);
+
+	PLMEM0(p, T_VPTR, lastSym);
+	LMEM0(i, T_SINT32, p);
+	i++;
+	SMEM0PP(i, T_SINT32, p);
 	nil = lastSym;
 
 	junkApi_putchar2('\n', '\n');
