@@ -218,8 +218,8 @@ beginFunc(L_newPrint); do {
 			PADD(p, T_VPTR, p, i);
 			PLMEM0(q, T_VPTR, p);
 			LMEM0(i, T_SINT32, q);
-			PADDI(p, T_VPTR, p, 1);
-			PLMEM0(p, T_VPTR, p);
+			PADDI(q, T_VPTR, p, 1);
+			PLMEM0(p, T_VPTR, q);
 			junkApi_putString2(i, p);
 			break;
 		}
