@@ -44,6 +44,7 @@ DAT_END();
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21;
+int32s nextCh:R20;
 
 /*
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
@@ -114,6 +115,32 @@ do {
 	print(cons);
 	junkApi_putchar('\n');
 	print(cons2);
+
+	junkApi_inkey(nextCh, 2);
+
+	for (;;) {
+		if (nextCh > ' ') break;
+		junkApi_inkey(nextCh, 2);
+	}
+	do {
+		if (nextCh == '(') {
+			BUG_EXIT();
+		}
+		if (nextCh == ')') {
+			BUG_EXIT();
+		}
+		if (nextCh == '.') {
+			BUG_EXIT();
+		}
+		junkApi_malloc(p, T_UINT8, 32);
+		q = p;
+		do {
+			SMEM0PP(nextCh, T_UINT8, q);
+			junkApi_inkey(nextCh, 2);
+			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
+		}
+		PDIF(i, T_UINT8, q, p);
+	}
 }
 
 /*
