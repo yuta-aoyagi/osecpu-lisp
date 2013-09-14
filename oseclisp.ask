@@ -159,6 +159,7 @@ do {
 	SMEM0PP(i, T_SINT32, p);
 	nil = lastSym;
 
+	// シンボル`symbol'を生成する.
 	junkApi_malloc(p, T_VPTR, 3);
 	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
 	lastSym = p;
