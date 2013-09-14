@@ -7,13 +7,6 @@
 
 #include "osecpu_ask.h"
 
-/// memmain の大きさ(T_SINT32単位).
-#define MEMMAIN_SIZE	16 * 1024
-/// symbuf の大きさ(T_UINT8単位).
-#define SYMBUF_SIZE	16 * 1024
-/// symidx の大きさ(T_SINT32).
-#define SYMIDX_SIZE	16 * 1024
-
 /**
  * @def BUG()
  * @brief #LISP_DEBUG がマクロ定義されていれば文字列"bug (行番号)"を標準出力に送る.
@@ -33,14 +26,12 @@
 #define BUG_EXIT() BUG(); jnukApi_exit(1)
 
 // 関数・データのラベル宣言.
-#define L_print	LOCAL(0)
 #define L_newPrint LOCAL(1)
 #define L_STRINGS LOCAL(2)
 #define L_incRef LOCAL(3)
 #define L_newCons LOCAL(4)
 LOCALLABELS(5);
 
-#define print(x) R30 = x; CALL(L_print)
 #define newPrint(x) P31 = x; CALL(L_newPrint)
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
@@ -52,73 +43,7 @@ DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
-VPtr memmainPtr:P21;	//< memmain のうち未使用の領域の先頭.
-VPtr symbuf:P22;	//< シンボルの名前を文字列として置く領域.
-VPtr symbufPtr:P23;	//< symbuf のうち未使用の領域の先頭.
-VPtr symidx:P24;	//< symbuf 内の添え字を置く領域.
-VPtr symidxPtr:P25;	//< symidx のうち未使用の領域の先頭.
-
-#define NIL 0		//< nilは memmain の先頭.
-
-// main
-do {
-	VPtr p:P01;
-	int32s sym:R02, cons:R03, cons2:R04;
-
-	// メモリを確保する.
-	junkApi_malloc(p, T_SINT32, MEMMAIN_SIZE);
-	memmain = p;
-	memmainPtr = memmain;
-	junkApi_malloc(symbuf, T_UINT8, SYMBUF_SIZE);
-	symbufPtr = symbuf;
-	junkApi_malloc(symidx, T_SINT32, SYMIDX_SIZE);
-	symidxPtr = symidx;
-
-	// nilの実体を生成する.
-	// これはmemmainの先頭に置く.
-	R01 = 1; SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
-
-	// symbuf に文字列`sym'を置く.
-	PDIF(R00, T_UINT8, symbufPtr, symbuf); SMEM0PP(R00, T_SINT32, symidxPtr);
-	R00 = 's'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 'y'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 'm'; SMEM0PP(R00, T_UINT8, symbufPtr);
-	R00 = 0;   SMEM0PP(R00, T_UINT8, symbufPtr);
-
-	// シンボル`sym'のオブジェクトを生成する.
-	PDIF(sym, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 0; SMEM0PP(R00, T_SINT32, memmainPtr);
-
-	// cons := (nil.sym)
-	PDIF(cons, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, NIL); R00++; PASMEM0(R00, T_SINT32, memmain, NIL);
-	R00 = NIL; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	SMEM0PP(sym, T_SINT32, memmainPtr);
-
-	// cons2 := (cons.sym)
-	PDIF(cons2, T_SINT32, memmainPtr, memmain);
-	SMEM0PP(R01, T_SINT32, memmainPtr);
-	R00 = 2; SMEM0PP(R00, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, cons); R00++; PASMEM0(R00, T_SINT32, memmain, cons);
-	SMEM0PP(cons, T_SINT32, memmainPtr);
-	PALMEM0(R00, T_SINT32, memmain, sym); R00++; PASMEM0(R00, T_SINT32, memmain, sym);
-	SMEM0PP(sym, T_SINT32, memmainPtr);
-
-	print(NIL);
-	junkApi_putchar('\n');
-	print(sym);
-	junkApi_putchar('\n');
-	print(cons);
-	junkApi_putchar('\n');
-	print(cons2);
-}
+VPtr lastSym:P21, nil:P27;
 
 /*
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
@@ -131,8 +56,7 @@ do {
  * consセルの場合は, vptr[1]とvptr[2]にそれぞれcarとcdrが入る.
  */
 
-VPtr lastSym:P21, nil:P27;
-
+// main
 do {
 	VPtr p:P01, q:P02, r:P03;
 	int32s i:R00, j:R01;
@@ -183,7 +107,6 @@ do {
 	newCons(cons, nil, sym);
 	newCons(cons2, cons, sym);
 
-	junkApi_putchar2('\n', '\n');
 	newPrint(nil);
 	junkApi_putchar('\n');
 	newPrint(sym);
@@ -197,55 +120,8 @@ do {
  * @brief 指定されたオブジェクトを表示する.
  *
  * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
- * @param[in] x:R30 表示するオブジェクト.
+ * @param[in] x:P31 表示するオブジェクト.
  */
-beginFunc(L_print); do {
-	int32s i:R00, x:R30;
-
-	#ifdef LISP_DEBUG
-		PALMEM0(i, T_SINT32, memmain, x);
-		if (i <= 0) { BUG_EXIT(); }
-	#endif
-
-	x++;
-	PALMEM0(i, T_SINT32, memmain, x);
-	do {
-		if (i == 0) {
-			junkApi_putConstString('nil');
-			break;
-		}
-		if (i == 1) {
-			VPtr p:P01, q:P02;
-			x++;
-			PALMEM0(i, T_SINT32, memmain, x);
-			PADD(p, T_UINT8, symbuf, i);
-			q = p;
-			do {
-				LMEM0PP(i, T_UINT8, q);
-				if (i != 0) continue;
-			}
-			PDIF(i, T_UINT8, q, p);
-			i--;
-			junkApi_putString2(i, p);
-			break;
-		}
-		if (i == 2) {
-			int32s t:R01;
-			t = x + 1;
-			junkApi_putchar('(');
-			PALMEM0(i, T_SINT32, memmain, t);
-			print(i);
-			junkApi_putchar('.');
-			t++;
-			PALMEM0(i, T_SINT32, memmain, t);
-			print(i);
-			junkApi_putchar(')');
-			break;
-		}
-		BUG_EXIT();
-	}
-} endFunc();
-
 beginFunc(L_newPrint); do {
 	VPtr x:P31, p:P01;
 	int32s i:R00;
