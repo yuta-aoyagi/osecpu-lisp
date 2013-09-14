@@ -143,7 +143,6 @@ do {
 	i = 1; PAPSMEM0(symtbl, T_VPTR, nil, i);	// nil[1]: pointer to entry of symtbl `nil'
 
 	junkApi_putchar2('\n', '\n');
-	print(NIL);
 	newPrint(nil);
 }
 
