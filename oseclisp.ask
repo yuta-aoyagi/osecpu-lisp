@@ -32,13 +32,19 @@
 /// #BUG() を呼んでからプログラムを終了する.
 #define BUG_EXIT() BUG(); jnukApi_exit(1)
 
-// 関数先頭のラベル宣言.
+// 関数・データのラベル宣言.
 #define L_print	LOCAL(0)
 #define L_newPrint LOCAL(1)
-LOCALLABELS(2);
+#define L_STRINGS LOCAL(2)
+LOCALLABELS(3);
 
 #define print(x) R30 = x; CALL(L_print)
 #define newPrint(x) P31 = x; CALL(L_newPrint)
+
+// シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
+DAT_SA(L_STRINGS, T_UINT8, 4);
+DB(3, 'n', 'i', 'l');
+DAT_END();
 
 // グローバルなレジスタ割り当て.
 VPtr memmain:P20;	//< Lispのオブジェクトを置く領域.
@@ -125,14 +131,12 @@ do {
 	junkApi_malloc(p, T_VPTR, 3);		// symtbl[0]: prev. symtbl.
 	PSMEM0(symtbl, T_VPTR, p);
 	symtbl = p;
-	junkApi_malloc(p, T_SINT32, 1);		// symtbl[1]: pointer to (int32s)3.
-	i = 3; SMEM0(i, T_SINT32, p);
+	PLIMM(q, L_STRINGS);		// symtbl[1]: pointer to length.
+	LMEM0PP(j, T_UINT8, q);
+	junkApi_malloc(p, T_SINT32, 1);
+	SMEM0(j, T_SINT32, p);
 	i = 1; PAPSMEM0(p, T_VPTR, symtbl, i);
-	junkApi_malloc(p, T_UINT8, 3);		// symtbl[2]: pointer to head of string `nil'.
-	i = 2; PAPSMEM0(p, T_VPTR, symtbl, i);
-	i = 'n'; SMEM0PP(i, T_UINT8, p);
-	i = 'i'; SMEM0PP(i, T_UINT8, p);
-	i = 'l'; SMEM0(i, T_UINT8, p);
+	i = 2; PAPSMEM0(q, T_VPTR, symtbl, i);		// symtbl[2]: pointer to head of string.
 
 	// シンボル`nil'を生成する.
 	junkApi_malloc(nil, T_VPTR, 2);		// nil[0]: pointer to head of array {1, 0}
