@@ -31,15 +31,15 @@
 #define L_intern LOCAL(2)
 %define L_symFound LOCAL(3)
 #define L_newCons LOCAL(4)
-#define L_print LOCAL(5)
-#define L_read LOCAL(6)
+#define L_read LOCAL(5)
+#define L_print LOCAL(6)
 LOCALLABELS(7);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
-#define print(x) P31 = x; CALL(L_print)
 #define read(_x) CALL(L_read); _x = P31
+#define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 11);
@@ -206,6 +206,40 @@ beginFunc(L_newCons); do {
 } endFunc();
 
 /*
+ * @brief 標準入力から次の式を読み取って返す.
+ * @retval (P31)読み取られた式.
+ */
+beginFunc(L_read); do {
+	for (;;) {
+		if (nextCh > ' ') break;
+		nextChar();
+	}
+	do {
+		VPtr p:P01, q:P02;
+		int32s i:R00;
+
+		if (nextCh == '(') {
+			BUG_EXIT();
+		}
+		if (nextCh == ')') {
+			BUG_EXIT();
+		}
+		if (nextCh == '.') {
+			BUG_EXIT();
+		}
+		junkApi_malloc(p, T_UINT8, 32);
+		q = p;
+		do {
+			SMEM0PP(nextCh, T_UINT8, q);
+			nextChar();
+			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
+		}
+		PDIF(i, T_UINT8, q, p);
+		intern(P31, i, p);
+	}
+} endFunc();
+
+/*
  * @brief 指定されたオブジェクトを表示する.
  *
  * 指定されたオブジェクトが不正ならば #BUG_EXIT() を呼ぶ.
@@ -243,39 +277,5 @@ beginFunc(L_print); do {
 			break;
 		}
 		BUG_EXIT();
-	}
-} endFunc();
-
-/*
- * @brief 標準入力から次の式を読み取って返す.
- * @retval (P31)読み取られた式.
- */
-beginFunc(L_read); do {
-	for (;;) {
-		if (nextCh > ' ') break;
-		nextChar();
-	}
-	do {
-		VPtr p:P01, q:P02;
-		int32s i:R00;
-
-		if (nextCh == '(') {
-			BUG_EXIT();
-		}
-		if (nextCh == ')') {
-			BUG_EXIT();
-		}
-		if (nextCh == '.') {
-			BUG_EXIT();
-		}
-		junkApi_malloc(p, T_UINT8, 32);
-		q = p;
-		do {
-			SMEM0PP(nextCh, T_UINT8, q);
-			nextChar();
-			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
-		}
-		PDIF(i, T_UINT8, q, p);
-		intern(P31, i, p);
 	}
 } endFunc();
