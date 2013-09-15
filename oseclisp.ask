@@ -49,6 +49,8 @@ DAT_END();
 VPtr lastSym:P20, nil:P21;
 int32s nextCh:R20;
 
+#define nextChar() junkApi_inkey(nextCh, 2)
+
 /*
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
  * vptr[0]はsint32の先頭へのポインタ.
@@ -101,11 +103,11 @@ do {
 	junkApi_putchar('\n');
 	print(cons2);
 
-	junkApi_inkey(nextCh, 2);
+	nextChar();
 
 	for (;;) {
 		if (nextCh > ' ') break;
-		junkApi_inkey(nextCh, 2);
+		nextChar();
 	}
 	do {
 		if (nextCh == '(') {
@@ -121,7 +123,7 @@ do {
 		q = p;
 		do {
 			SMEM0PP(nextCh, T_UINT8, q);
-			junkApi_inkey(nextCh, 2);
+			nextChar();
 			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
 		}
 		PDIF(i, T_UINT8, q, p);
