@@ -30,11 +30,14 @@
 #define L_incRef LOCAL(1)
 #define L_newCons LOCAL(2)
 #define L_print LOCAL(3)
-LOCALLABELS(4);
+%define L_symFound LOCAL(4)
+#define L_intern LOCAL(5)
+LOCALLABELS(6);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
 #define print(x) P31 = x; CALL(L_print)
+#define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 11);
@@ -71,37 +74,19 @@ do {
 	SMEM0PP(i, T_SINT32, p);
 
 	// シンボル`nil'を生成する.
-	junkApi_malloc(p, T_VPTR, 3);
-	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
-	lastSym = p;
 	PLIMM(r, L_STRINGS);
 	LMEM0PP(j, T_UINT8, r);
-	i = 1; PAPSMEM0(r, T_VPTR, p, i);
-	junkApi_malloc(q, T_SINT32, 3);
-	PSMEM0(q, T_VPTR, p);
-	i = 1; SMEM0PP(i, T_SINT32, q);
-	i = 0; SMEM0PP(i, T_SINT32, q);
-	SMEM0PP(j, T_SINT32, q);
-
-	incRef(lastSym);
-	nil = lastSym;
+	intern(p, j, r);
+	incRef(p);
+	nil = p;
 
 	// シンボル`symbol'を生成する.
-	junkApi_malloc(p, T_VPTR, 3);
-	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
-	lastSym = p;
 	PADD(r, T_UINT8, r, j);
 	LMEM0PP(j, T_UINT8, r);
-	i = 1; PAPSMEM0(r, T_VPTR, p, i);
-	junkApi_malloc(q, T_SINT32, 3);
-	PSMEM0(q, T_VPTR, p);
-	i = 1; SMEM0PP(i, T_SINT32, q);
-	i = 0; SMEM0PP(i, T_SINT32, q);
-	SMEM0PP(j, T_SINT32, q);
-
+	intern(p, j, r);
 	VPtr sym:P04;
-	incRef(lastSym);
-	sym = lastSym;
+	incRef(p);
+	sym = p;
 
 	// consセルを2つ生成する.
 	VPtr cons:P05, cons2:P06;
@@ -140,6 +125,8 @@ do {
 			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
 		}
 		PDIF(i, T_UINT8, q, p);
+		intern(q, i, p);
+		print(q);
 	}
 }
 
@@ -225,4 +212,55 @@ beginFunc(L_print); do {
 		}
 		BUG_EXIT();
 	}
+} endFunc();
+
+/*
+ * @brief 指定された文字列を名前とするシンボルをシンボルテーブルから探し, なければ新規に登録して返す.
+ * @param[in] P31 文字列の先頭へのポインタ.
+ * @param[in] R30 文字列の長さ.
+ * @retval (P31)シンボル.
+ */
+beginFunc(L_intern); do {
+	VPtr p:P01, q:P02, r:P03;
+	int32s len:R00, i:R01;
+
+	p = P31;
+	len = R30;
+
+	q = lastSym;
+	for (;;) {
+		PLMEM0(r, T_VPTR, q);
+		i = 2; PALMEM0(i, T_SINT32, r, i);
+		if (i == 0) break;
+		if (i == len) {
+			r = p;
+			VPtr s:P04;
+			int32s j:R02;
+			j = 1; PAPLMEM0(s, T_VPTR, q, j);
+			do {
+				int32s k:R03;
+				LMEM0PP(j, T_UINT8, r);
+				LMEM0PP(k, T_UINT8, s);
+				if (j != k) break;
+				i--; if (i > 0) continue;
+			}
+			if (i == 0) {
+				P31 = q;
+				goto symFound;
+			}
+		}
+		i = 2; PAPLMEM0(q, T_VPTR, q, i);
+	}
+	junkApi_malloc(q, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, q, i);
+	lastSym = q;
+	i = 1; PAPSMEM0(p, T_VPTR, q, i);
+	junkApi_malloc(p, T_SINT32, 3);
+	PSMEM0(p, T_VPTR, q);
+	i = 1; SMEM0PP(i, T_SINT32, p);
+	i = 0; SMEM0PP(i, T_SINT32, p);
+	SMEM0PP(len, T_SINT32, p);
+
+	P31 = q;
+LB0(L_symFound);
 } endFunc();
