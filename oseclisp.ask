@@ -221,11 +221,13 @@ beginFunc(L_read); do {
 		if (nextCh == '(') {
 			BUG_EXIT();
 		}
-		if (nextCh == ')') {
-			BUG_EXIT();
-		}
-		if (nextCh == '.') {
-			BUG_EXIT();
+		if ((nextCh == ')') | (nextCh == '.')) {
+			junkApi_putConstString('Unexpected \'');
+			junkApi_putcharRxx(nextCh);
+			junkApi_putchar2('\'', '\n');
+			nextChar();
+			P31 = nil;
+			break;
 		}
 		junkApi_malloc(p, T_UINT8, 32);
 		q = p;
