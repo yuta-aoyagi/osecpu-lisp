@@ -26,14 +26,19 @@
 #define BUG_EXIT() BUG(); jnukApi_exit(1)
 
 // 関数・データのラベル宣言.
-#define L_STRINGS LOCAL(0)
+%define L_STRINGS LOCAL(0)
 #define L_incRef LOCAL(1)
-#define L_newCons LOCAL(2)
-#define L_print LOCAL(3)
-LOCALLABELS(4);
+#define L_intern LOCAL(2)
+%define L_symFound LOCAL(3)
+#define L_newCons LOCAL(4)
+#define L_read LOCAL(5)
+#define L_print LOCAL(6)
+LOCALLABELS(7);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
+#define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
+#define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
@@ -44,6 +49,9 @@ DAT_END();
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21;
+int32s nextCh:R20;
+
+#define nextChar() junkApi_inkey(nextCh, 2)
 
 /*
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
@@ -58,8 +66,8 @@ VPtr lastSym:P20, nil:P21;
 
 // main
 do {
-	VPtr p:P01, q:P02, r:P03;
-	int32s i:R00, j:R01;
+	VPtr p:P01, q:P02;
+	int32s i:R00;
 
 	// シンボルテーブルの番兵を生成する.
 	junkApi_malloc(p, T_SINT32, 3);		// lastSym: pointer to head of array {1, 0, 0}.
@@ -70,40 +78,22 @@ do {
 	SMEM0PP(i, T_SINT32, p);
 
 	// シンボル`nil'を生成する.
-	junkApi_malloc(p, T_VPTR, 3);
-	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
-	lastSym = p;
-	PLIMM(r, L_STRINGS);
-	LMEM0PP(j, T_UINT8, r);
-	i = 1; PAPSMEM0(r, T_VPTR, p, i);
-	junkApi_malloc(q, T_SINT32, 3);
-	PSMEM0(q, T_VPTR, p);
-	i = 1; SMEM0PP(i, T_SINT32, q);
-	i = 0; SMEM0PP(i, T_SINT32, q);
-	SMEM0PP(j, T_SINT32, q);
-
-	incRef(lastSym);
-	nil = lastSym;
+	PLIMM(q, L_STRINGS);
+	LMEM0PP(i, T_UINT8, q);
+	intern(p, i, q);
+	incRef(p);
+	nil = p;
 
 	// シンボル`symbol'を生成する.
-	junkApi_malloc(p, T_VPTR, 3);
-	i = 2; PAPSMEM0(lastSym, T_VPTR, p, i);
-	lastSym = p;
-	PADD(r, T_UINT8, r, j);
-	LMEM0PP(j, T_UINT8, r);
-	i = 1; PAPSMEM0(r, T_VPTR, p, i);
-	junkApi_malloc(q, T_SINT32, 3);
-	PSMEM0(q, T_VPTR, p);
-	i = 1; SMEM0PP(i, T_SINT32, q);
-	i = 0; SMEM0PP(i, T_SINT32, q);
-	SMEM0PP(j, T_SINT32, q);
-
-	VPtr sym:P04;
-	incRef(lastSym);
-	sym = lastSym;
+	PADD(q, T_UINT8, q, i);
+	LMEM0PP(i, T_UINT8, q);
+	intern(p, i, q);
+	VPtr sym:P03;
+	incRef(p);
+	sym = p;
 
 	// consセルを2つ生成する.
-	VPtr cons:P05, cons2:P06;
+	VPtr cons:P04, cons2:P05;
 	newCons(cons, nil, sym);
 	newCons(cons2, cons, sym);
 
@@ -114,6 +104,11 @@ do {
 	print(cons);
 	junkApi_putchar('\n');
 	print(cons2);
+
+	nextChar();
+
+	read(p);
+	print(p);
 }
 
 /*
@@ -133,6 +128,57 @@ beginFunc(L_incRef); do {
 	#endif
 	i++;
 	SMEM0PP(i, T_SINT32, p);
+} endFunc();
+
+/*
+ * @brief 指定された文字列を名前とするシンボルをシンボルテーブルから探し, なければ新規に登録して返す.
+ * @param[in] P31 文字列の先頭へのポインタ.
+ * @param[in] R30 文字列の長さ.
+ * @retval (P31)シンボル.
+ */
+beginFunc(L_intern); do {
+	VPtr p:P01, q:P02, r:P03;
+	int32s len:R00, i:R01;
+
+	p = P31;
+	len = R30;
+
+	q = lastSym;
+	for (;;) {
+		PLMEM0(r, T_VPTR, q);
+		i = 2; PALMEM0(i, T_SINT32, r, i);
+		if (i == 0) break;
+		if (i == len) {
+			r = p;
+			VPtr s:P04;
+			int32s j:R02;
+			j = 1; PAPLMEM0(s, T_VPTR, q, j);
+			do {
+				int32s k:R03;
+				LMEM0PP(j, T_UINT8, r);
+				LMEM0PP(k, T_UINT8, s);
+				if (j != k) break;
+				i--; if (i > 0) continue;
+			}
+			if (i == 0) {
+				P31 = q;
+				goto symFound;
+			}
+		}
+		i = 2; PAPLMEM0(q, T_VPTR, q, i);
+	}
+	junkApi_malloc(q, T_VPTR, 3);
+	i = 2; PAPSMEM0(lastSym, T_VPTR, q, i);
+	lastSym = q;
+	i = 1; PAPSMEM0(p, T_VPTR, q, i);
+	junkApi_malloc(p, T_SINT32, 3);
+	PSMEM0(p, T_VPTR, q);
+	i = 1; SMEM0PP(i, T_SINT32, p);
+	i = 0; SMEM0PP(i, T_SINT32, p);
+	SMEM0PP(len, T_SINT32, p);
+
+	P31 = q;
+LB0(L_symFound);
 } endFunc();
 
 /*
@@ -157,6 +203,40 @@ beginFunc(L_newCons); do {
 	SMEM0PP(i, T_SINT32, q);
 
 	P31 = p;
+} endFunc();
+
+/*
+ * @brief 標準入力から次の式を読み取って返す.
+ * @retval (P31)読み取られた式.
+ */
+beginFunc(L_read); do {
+	for (;;) {
+		if (nextCh > ' ') break;
+		nextChar();
+	}
+	do {
+		VPtr p:P01, q:P02;
+		int32s i:R00;
+
+		if (nextCh == '(') {
+			BUG_EXIT();
+		}
+		if (nextCh == ')') {
+			BUG_EXIT();
+		}
+		if (nextCh == '.') {
+			BUG_EXIT();
+		}
+		junkApi_malloc(p, T_UINT8, 32);
+		q = p;
+		do {
+			SMEM0PP(nextCh, T_UINT8, q);
+			nextChar();
+			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
+		}
+		PDIF(i, T_UINT8, q, p);
+		intern(P31, i, p);
+	}
 } endFunc();
 
 /*
