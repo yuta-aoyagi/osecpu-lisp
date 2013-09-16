@@ -274,24 +274,49 @@ beginFunc(L_read); do {
 			VPtr r:P03;
 
 			nextChar();
-			read(q);
 			skipBlank();
-			if (nextCh == '.') {
-				nextChar();
-				read(r);
+			if (nextCh == ')') {
+				incRef(nil);
+				p = nil;
+				break;
+			}
+			junkApi_malloc(p, T_VPTR, 3);
+			junkApi_malloc(q, T_SINT32, 2);
+			PSMEM0(q, T_VPTR, p);
+			i = 1; SMEM0PP(i, T_SINT32, q);
+			SMEM0PP(i, T_SINT32, q);
+			r = p;
+			for (;;) {
+				read(q);
+				i = 1; PAPSMEM0(q, T_VPTR, p, i);
 				skipBlank();
 				if (nextCh == ')') {
+					incRef(nil);
+					q = nil;
 					nextChar();
-				} else {
-					junkApi_putConstString('Missing \')\'\n');
+					break;
 				}
-			} else {
-				junkApi_putConstString('Missing \'.\'\n');
-				incRef(nil);
-				r = nil;
+				if (nextCh == '.') {
+					nextChar();
+					read(q);
+					skipBlank();
+					if (nextCh == ')') {
+						nextChar();
+					} else {
+						junkApi_putConstString('Missing \')\'\n');
+					}
+					break;
+				}
+				junkApi_malloc(q, T_VPTR, 3);
+				i = 2; PAPSMEM0(q, T_VPTR, p, i);
+				junkApi_malloc(p, T_SINT32, 2);
+				PSMEM0(p, T_VPTR, q);
+				i = 1; SMEM0PP(i, T_SINT32, p);
+				SMEM0PP(i, T_SINT32, p);
+				p = q;
 			}
-			newCons(p, q, r);
-			decRef(q); decRef(r);
+			i = 2; PAPSMEM0(q, T_VPTR, p, i);
+			p = r;
 			break;
 		}
 		if ((nextCh == ')') | (nextCh == '.')) {
