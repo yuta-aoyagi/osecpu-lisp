@@ -37,7 +37,8 @@
 #define L_print LOCAL(8)
 #define L_eq LOCAL(9)
 #define L_atom LOCAL(10)
-LOCALLABELS(11);
+#define L_car LOCAL(11)
+LOCALLABELS(12);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
@@ -48,6 +49,7 @@ LOCALLABELS(11);
 #define print(x) P31 = x; CALL(L_print)
 #define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
+#define car(_y, x) P31 = x; CALL(L_car); _y = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 13);
@@ -132,7 +134,8 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	eq(q, p, nil);
+	PLIMM(q, L_atom); PLIMM(q, L_eq); // すべての関数を少なくとも一度触るため.
+	car(q, p);
 	print(q);
 	decRef(q);
 	decRef(p);
@@ -409,6 +412,26 @@ beginFunc(L_print); do {
 		}
 		BUG_EXIT();
 	}
+} endFunc();
+
+/*
+ * @brief 指定されたconsセルのcarを返す.
+ *
+ * 指定されたオブジェクトがconsセルでなければ結果は未定義である.
+ */
+beginFunc(L_car); do {
+	VPtr p:P01;
+	int32s i:R00;
+	PLMEM0(p, T_VPTR, P31);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i == 1) {
+		PAPLMEM0(p, T_VPTR, P31, i);
+	} else {
+		junkApi_putConstString('car: not a cons\n');
+		p = nil;
+	}
+	incRef(p);
+	P31 = p;
 } endFunc();
 
 /*
