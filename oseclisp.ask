@@ -271,7 +271,28 @@ beginFunc(L_read); do {
 		int32s i:R00;
 
 		if (nextCh == '(') {
-			BUG_EXIT();
+			VPtr r:P03;
+
+			nextChar();
+			read(q);
+			skipBlank();
+			if (nextCh == '.') {
+				nextChar();
+				read(r);
+				skipBlank();
+				if (nextCh == ')') {
+					nextChar();
+				} else {
+					junkApi_putConstString('Missing \')\'\n');
+				}
+			} else {
+				junkApi_putConstString('Missing \'.\'\n');
+				incRef(nil);
+				r = nil;
+			}
+			newCons(p, q, r);
+			decRef(q); decRef(r);
+			break;
 		}
 		if ((nextCh == ')') | (nextCh == '.')) {
 			junkApi_putConstString('Unexpected \'');
