@@ -35,8 +35,9 @@
 #define L_skipBlank LOCAL(6)
 #define L_read LOCAL(7)
 #define L_print LOCAL(8)
-#define L_atom LOCAL(9)
-LOCALLABELS(10);
+#define L_eq LOCAL(9)
+#define L_atom LOCAL(10)
+LOCALLABELS(11);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
@@ -45,6 +46,7 @@ LOCALLABELS(10);
 #define skipBlank() CALL(L_skipBlank)
 #define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
+#define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
@@ -130,7 +132,7 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	atom(q, p);
+	eq(q, p, nil);
 	print(q);
 	decRef(q);
 	decRef(p);
@@ -407,6 +409,19 @@ beginFunc(L_print); do {
 		}
 		BUG_EXIT();
 	}
+} endFunc();
+
+/*
+ * @brief 指定された2つのアトムが等しいかどうかを判定する.
+ *
+ * 指定された2つのオブジェクトのうち少なくとも一方がアトムでなければ結果は未定義である.
+ * @return 指定された2つのアトムが等しいならばt, さもなくばnil.
+ */
+beginFunc(L_eq); do {
+	VPtr p:P01;
+	if (P31 == P32) { p = symT; } else { p = nil; }
+	incRef(p);
+	P31 = p;
 } endFunc();
 
 /*
