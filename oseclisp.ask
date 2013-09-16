@@ -28,15 +28,17 @@
 // 関数・データのラベル宣言.
 %define L_STRINGS LOCAL(0)
 #define L_incRef LOCAL(1)
-#define L_intern LOCAL(2)
-%define L_symFound LOCAL(3)
-#define L_newCons LOCAL(4)
-#define L_skipBlank LOCAL(5)
-#define L_read LOCAL(6)
-#define L_print LOCAL(7)
-LOCALLABELS(8);
+#define L_decRef LOCAL(2)
+#define L_intern LOCAL(3)
+%define L_symFound LOCAL(4)
+#define L_newCons LOCAL(5)
+#define L_skipBlank LOCAL(6)
+#define L_read LOCAL(7)
+#define L_print LOCAL(8)
+LOCALLABELS(9);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
+#define decRef(x) P31 = x; CALL(L_decRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
 #define skipBlank() CALL(L_skipBlank)
@@ -50,7 +52,7 @@ DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr lastSym:P20, nil:P21;
+VPtr lastSym:P20, nil:P21, null:P27;
 int32s nextCh:R20;
 
 #define nextChar() junkApi_inkey(nextCh, 2)
@@ -107,6 +109,12 @@ do {
 	junkApi_putchar('\n');
 	print(cons2);
 
+	// 上のテスト出力に使ったオブジェクトを解放する.
+	// (symはシンボルテーブル内の参照が残るので, 参照カウントが1になり解放されない)
+	decRef(cons2); cons2 = null;
+	decRef(cons); cons = null;
+	decRef(sym); sym = null;
+
 	nextChar();
 
 	read(p);
@@ -130,6 +138,39 @@ beginFunc(L_incRef); do {
 	#endif
 	i++;
 	SMEM0PP(i, T_SINT32, p);
+} endFunc();
+
+/*
+ * @brief 指定されたオブジェクトの参照カウントを1減少する.
+ * @param[in,out] x:P31 対象とするオブジェクト.
+ */
+beginFunc(L_decRef); do {
+	VPtr x:P01, p:P02;
+	int32s i:R00;
+
+	x = P31;
+
+	PLMEM0(p, T_VPTR, x);
+	LMEM0(i, T_SINT32, p);
+	#ifdef LISP_DEBUG
+		if (i <= 0) { BUG_EXIT(); }
+	#endif
+	i--;
+	if (i > 0) {
+		SMEM0(i, T_SINT32, p);
+		break;
+	}
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i == 1) {
+		// ここでpを解放する.
+		i = 1; PAPLMEM0(p, T_VPTR, x, i);
+		decRef(p);
+		i = 2; PAPLMEM0(p, T_VPTR, x, i);
+		decRef(p);
+		// ここでxを解放する.
+		break;
+	}
+	BUG_EXIT();
 } endFunc();
 
 /*
