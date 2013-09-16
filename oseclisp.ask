@@ -46,13 +46,14 @@ LOCALLABELS(9);
 #define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 11);
+DAT_SA(L_STRINGS, T_UINT8, 13);
 DB(3, 'n', 'i', 'l');
+DB(1, 't');
 DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr lastSym:P20, nil:P21, null:P27;
+VPtr lastSym:P20, nil:P21, symT:P22, null:P27;
 int32s nextCh:R20;
 
 #define nextChar() junkApi_inkey(nextCh, 2)
@@ -87,6 +88,13 @@ do {
 	intern(p, i, q);
 	incRef(p);
 	nil = p;
+
+	// シンボル`t'を生成する.
+	PADD(q, T_UINT8, q, i);
+	LMEM0PP(i, T_UINT8, q);
+	intern(p, i, q);
+	incRef(p);
+	symT = p;
 
 	// シンボル`symbol'を生成する.
 	PADD(q, T_UINT8, q, i);
