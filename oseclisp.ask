@@ -119,6 +119,7 @@ do {
 
 	read(p);
 	print(p);
+	decRef(p);
 }
 
 /*
@@ -262,9 +263,11 @@ beginFunc(L_skipBlank); do {
  * @retval (P31)読み取られた式.
  */
 beginFunc(L_read); do {
+	VPtr p:P01;
+
 	skipBlank();
 	do {
-		VPtr p:P01, q:P02;
+		VPtr q:P02;
 		int32s i:R00;
 
 		if (nextCh == '(') {
@@ -275,7 +278,8 @@ beginFunc(L_read); do {
 			junkApi_putcharRxx(nextCh);
 			junkApi_putchar2('\'', '\n');
 			nextChar();
-			P31 = nil;
+			incRef(nil);
+			p = nil;
 			break;
 		}
 		junkApi_malloc(p, T_UINT8, 32);
@@ -286,8 +290,10 @@ beginFunc(L_read); do {
 			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
 		}
 		PDIF(i, T_UINT8, q, p);
-		intern(P31, i, p);
+		intern(p, i, p);
+		incRef(p);
 	}
+	P31 = p;
 } endFunc();
 
 /*
