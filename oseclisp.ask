@@ -31,11 +31,11 @@
 #define L_decRef LOCAL(2)
 #define L_intern LOCAL(3)
 %define L_symFound LOCAL(4)
-#define L_newCons LOCAL(5)
-#define L_atom LOCAL(6)
-#define L_eq LOCAL(7)
-#define L_car LOCAL(8)
-#define L_cdr LOCAL(9)
+#define L_atom LOCAL(5)
+#define L_eq LOCAL(6)
+#define L_car LOCAL(7)
+#define L_cdr LOCAL(8)
+#define L_cons LOCAL(9)
 #define L_skipBlank LOCAL(10)
 #define L_read LOCAL(11)
 #define L_print LOCAL(12)
@@ -44,11 +44,11 @@ LOCALLABELS(13);
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
-#define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
 #define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define car(_y, x) P31 = x; CALL(L_car); _y = P31
 #define cdr(_y, x) P31 = x; CALL(L_cdr); _y = P31
+#define cons(_z, x, y) P31 = x; P32 = y; CALL(L_cons); _z = P31
 #define skipBlank() CALL(L_skipBlank)
 #define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
@@ -114,8 +114,8 @@ do {
 
 	// consセルを2つ生成する.
 	VPtr cons:P04, cons2:P05;
-	newCons(cons, nil, sym);
-	newCons(cons2, cons, sym);
+	cons(cons, nil, sym);
+	cons(cons2, cons, sym);
 
 	print(nil);
 	junkApi_putchar('\n');
@@ -136,8 +136,8 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	PLIMM(q, L_atom); PLIMM(q, L_eq); PLIMM(q, L_car); // すべての関数を少なくとも一度触るため.
-	cdr(q, p);
+	PLIMM(q, L_atom); PLIMM(q, L_eq); PLIMM(q, L_car); PLIMM(q, L_cdr); // すべての関数を少なくとも一度触るため.
+	cons(q, nil, p);
 	print(q);
 	decRef(q);
 	decRef(p);
@@ -247,30 +247,6 @@ LB0(L_symFound);
 } endFunc();
 
 /*
- * @brief 指定された2つのオブジェクトからconsセルを生成する.
- * @param[in] x:P31 car.
- * @param[in] y:P32 cdr.
- * @retval (P31)生成されたconsセル.
- */
-beginFunc(L_newCons); do {
-	VPtr x:P31, y:P32, p:P01, q:P02, a:P03, b:P04;
-	int32s i:R00;
-
-	a = x; b = y;
-	junkApi_malloc(p, T_VPTR, 3);
-	incRef(a);
-	i = 1; PAPSMEM0(a, T_VPTR, p, i);
-	incRef(b);
-	i = 2; PAPSMEM0(b, T_VPTR, p, i);
-	junkApi_malloc(q, T_SINT32, 2);
-	PSMEM0(q, T_VPTR, p);
-	i = 1; SMEM0PP(i, T_SINT32, q);
-	SMEM0PP(i, T_SINT32, q);
-
-	P31 = p;
-} endFunc();
-
-/*
  * @brief 指定されたオブジェクトがアトムであるか否かを判定する.
  * @param[in] P31 判定するオブジェクト.
  * @return 指定されたオブジェクトがアトムならばt, さもなくばnil.
@@ -335,6 +311,30 @@ beginFunc(L_cdr); do {
 		p = nil;
 	}
 	incRef(p);
+	P31 = p;
+} endFunc();
+
+/*
+ * @brief 指定された2つのオブジェクトからconsセルを生成する.
+ * @param[in] x:P31 car.
+ * @param[in] y:P32 cdr.
+ * @retval (P31)生成されたconsセル.
+ */
+beginFunc(L_cons); do {
+	VPtr x:P31, y:P32, p:P01, q:P02, a:P03, b:P04;
+	int32s i:R00;
+
+	a = x; b = y;
+	junkApi_malloc(p, T_VPTR, 3);
+	incRef(a);
+	i = 1; PAPSMEM0(a, T_VPTR, p, i);
+	incRef(b);
+	i = 2; PAPSMEM0(b, T_VPTR, p, i);
+	junkApi_malloc(q, T_SINT32, 2);
+	PSMEM0(q, T_VPTR, p);
+	i = 1; SMEM0PP(i, T_SINT32, q);
+	SMEM0PP(i, T_SINT32, q);
+
 	P31 = p;
 } endFunc();
 
