@@ -35,10 +35,11 @@
 #define L_atom LOCAL(6)
 #define L_eq LOCAL(7)
 #define L_car LOCAL(8)
-#define L_skipBlank LOCAL(9)
-#define L_read LOCAL(10)
-#define L_print LOCAL(11)
-LOCALLABELS(12);
+#define L_cdr LOCAL(9)
+#define L_skipBlank LOCAL(10)
+#define L_read LOCAL(11)
+#define L_print LOCAL(12)
+LOCALLABELS(13);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
@@ -47,6 +48,7 @@ LOCALLABELS(12);
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
 #define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define car(_y, x) P31 = x; CALL(L_car); _y = P31
+#define cdr(_y, x) P31 = x; CALL(L_cdr); _y = P31
 #define skipBlank() CALL(L_skipBlank)
 #define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
@@ -134,8 +136,8 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	PLIMM(q, L_atom); PLIMM(q, L_eq); // すべての関数を少なくとも一度触るため.
-	car(q, p);
+	PLIMM(q, L_atom); PLIMM(q, L_eq); PLIMM(q, L_car); // すべての関数を少なくとも一度触るため.
+	cdr(q, p);
 	print(q);
 	decRef(q);
 	decRef(p);
@@ -310,6 +312,26 @@ beginFunc(L_car); do {
 		PAPLMEM0(p, T_VPTR, P31, i);
 	} else {
 		junkApi_putConstString('car: not a cons\n');
+		p = nil;
+	}
+	incRef(p);
+	P31 = p;
+} endFunc();
+
+/*
+ * @brief 指定されたconsセルのcdrを返す.
+ *
+ * 指定されたオブジェクトがconsセルでなければ結果は未定義である.
+ */
+beginFunc(L_cdr); do {
+	VPtr p:P01;
+	int32s i:R00;
+	PLMEM0(p, T_VPTR, P31);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i == 1) {
+		i++; PAPLMEM0(p, T_VPTR, P31, i);
+	} else {
+		junkApi_putConstString('cdr: not a cons.\n');
 		p = nil;
 	}
 	incRef(p);
