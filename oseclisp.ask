@@ -32,24 +32,24 @@
 #define L_intern LOCAL(3)
 %define L_symFound LOCAL(4)
 #define L_newCons LOCAL(5)
-#define L_skipBlank LOCAL(6)
-#define L_read LOCAL(7)
-#define L_print LOCAL(8)
-#define L_eq LOCAL(9)
-#define L_atom LOCAL(10)
-#define L_car LOCAL(11)
+#define L_atom LOCAL(6)
+#define L_eq LOCAL(7)
+#define L_car LOCAL(8)
+#define L_skipBlank LOCAL(9)
+#define L_read LOCAL(10)
+#define L_print LOCAL(11)
 LOCALLABELS(12);
 
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define newCons(_z, x, y) P31 = x; P32 = y; CALL(L_newCons); _z = P31
+#define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
+#define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
+#define car(_y, x) P31 = x; CALL(L_car); _y = P31
 #define skipBlank() CALL(L_skipBlank)
 #define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
-#define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
-#define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
-#define car(_y, x) P31 = x; CALL(L_car); _y = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 13);
@@ -268,6 +268,54 @@ beginFunc(L_newCons); do {
 	P31 = p;
 } endFunc();
 
+/*
+ * @brief 指定されたオブジェクトがアトムであるか否かを判定する.
+ * @param[in] P31 判定するオブジェクト.
+ * @return 指定されたオブジェクトがアトムならばt, さもなくばnil.
+ */
+beginFunc(L_atom); do {
+	VPtr p:P01;
+	int32s i:R00;
+	PLMEM0(p, T_VPTR, P31);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i != 1) { p = symT; } else { p = nil; }
+	incRef(p);
+	P31 = p;
+} endFunc();
+
+/*
+ * @brief 指定された2つのアトムが等しいかどうかを判定する.
+ *
+ * 指定された2つのオブジェクトのうち少なくとも一方がアトムでなければ結果は未定義である.
+ * @return 指定された2つのアトムが等しいならばt, さもなくばnil.
+ */
+beginFunc(L_eq); do {
+	VPtr p:P01;
+	if (P31 == P32) { p = symT; } else { p = nil; }
+	incRef(p);
+	P31 = p;
+} endFunc();
+
+/*
+ * @brief 指定されたconsセルのcarを返す.
+ *
+ * 指定されたオブジェクトがconsセルでなければ結果は未定義である.
+ */
+beginFunc(L_car); do {
+	VPtr p:P01;
+	int32s i:R00;
+	PLMEM0(p, T_VPTR, P31);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i == 1) {
+		PAPLMEM0(p, T_VPTR, P31, i);
+	} else {
+		junkApi_putConstString('car: not a cons\n');
+		p = nil;
+	}
+	incRef(p);
+	P31 = p;
+} endFunc();
+
 // 標準入力から空白文字を読み飛ばす.
 beginFunc(L_skipBlank); do {
 	for (;;) {
@@ -412,52 +460,4 @@ beginFunc(L_print); do {
 		}
 		BUG_EXIT();
 	}
-} endFunc();
-
-/*
- * @brief 指定されたconsセルのcarを返す.
- *
- * 指定されたオブジェクトがconsセルでなければ結果は未定義である.
- */
-beginFunc(L_car); do {
-	VPtr p:P01;
-	int32s i:R00;
-	PLMEM0(p, T_VPTR, P31);
-	i = 1; PALMEM0(i, T_SINT32, p, i);
-	if (i == 1) {
-		PAPLMEM0(p, T_VPTR, P31, i);
-	} else {
-		junkApi_putConstString('car: not a cons\n');
-		p = nil;
-	}
-	incRef(p);
-	P31 = p;
-} endFunc();
-
-/*
- * @brief 指定された2つのアトムが等しいかどうかを判定する.
- *
- * 指定された2つのオブジェクトのうち少なくとも一方がアトムでなければ結果は未定義である.
- * @return 指定された2つのアトムが等しいならばt, さもなくばnil.
- */
-beginFunc(L_eq); do {
-	VPtr p:P01;
-	if (P31 == P32) { p = symT; } else { p = nil; }
-	incRef(p);
-	P31 = p;
-} endFunc();
-
-/*
- * @brief 指定されたオブジェクトがアトムであるか否かを判定する.
- * @param[in] P31 判定するオブジェクト.
- * @return 指定されたオブジェクトがアトムならばt, さもなくばnil.
- */
-beginFunc(L_atom); do {
-	VPtr p:P01;
-	int32s i:R00;
-	PLMEM0(p, T_VPTR, P31);
-	i = 1; PALMEM0(i, T_SINT32, p, i);
-	if (i != 1) { p = symT; } else { p = nil; }
-	incRef(p);
-	P31 = p;
 } endFunc();
