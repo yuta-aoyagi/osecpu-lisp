@@ -43,7 +43,7 @@
 LOCALLABELS(14);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
-#define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 1; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
+#define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 2; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
 #define newCons(_z, x, y) R30 = 3; R31 = 2; R33 = 1; R34 = 1; P31 = x; P32 = y; CALL(L_newObj); _z = P31
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
@@ -93,14 +93,12 @@ do {
 	PLIMM(q, L_STRINGS);
 	LMEM0PP(i, T_UINT8, q);
 	intern(p, i, q);
-	incRef(p);
 	nil = p;
 
 	// シンボル`t'を生成する.
 	PADD(q, T_UINT8, q, i);
 	LMEM0PP(i, T_UINT8, q);
 	intern(p, i, q);
-	incRef(p);
 	symT = p;
 
 	// シンボル`symbol'を生成する.
@@ -108,7 +106,6 @@ do {
 	LMEM0PP(i, T_UINT8, q);
 	intern(p, i, q);
 	VPtr sym:P03;
-	incRef(p);
 	sym = p;
 
 	// consセルを2つ生成する.
@@ -257,8 +254,7 @@ beginFunc(L_intern); do {
 				LMEM0PP(k, T_UINT8, s);
 				if (j != k) break;
 				i--; if (i > 0) continue;
-			}
-			if (i == 0) {
+				incRef(q);
 				P31 = q;
 				goto symFound;
 			}
@@ -432,7 +428,6 @@ beginFunc(L_read); do {
 		}
 		PDIF(i, T_UINT8, q, p);
 		intern(p, i, p);
-		incRef(p);
 	}
 	P31 = p;
 } endFunc();
