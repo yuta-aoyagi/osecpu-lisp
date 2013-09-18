@@ -43,7 +43,7 @@
 #define L_read LOCAL(14)
 #define L_print LOCAL(15)
 #define L_eval LOCAL(16)
-%define L_evalFound LOCAL(17)
+%define L_evalReturn LOCAL(17)
 LOCALLABELS(18);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
@@ -516,7 +516,7 @@ beginFunc(L_eval); do {
 
 	if ((e == nil) | (e == symT)) {
 		p = e;
-		goto evalFound;
+		goto evalReturn;
 	}
 	PLMEM0(p, T_VPTR, e);
 	i = 1; PALMEM0(i, T_SINT32, p, i);
@@ -530,13 +530,13 @@ beginFunc(L_eval); do {
 				if (s == e) {
 					i = 2; PAPLMEM0(s, T_VPTR, r, i);
 					i = 1; PAPLMEM0(p, T_VPTR, s, i);
-					goto evalFound;
+					goto evalReturn;
 				}
 				i = 2; PAPLMEM0(q, T_VPTR, q, i);
 			}
 			i = 2; PAPLMEM0(p, T_VPTR, p, i);
 		}
-LB0(L_evalFound);
+LB0(L_evalReturn);
 		incRef(p);
 		P31 = p;
 		break;
