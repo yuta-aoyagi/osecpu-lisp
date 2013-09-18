@@ -42,7 +42,9 @@
 #define L_skipBlank LOCAL(13)
 #define L_read LOCAL(14)
 #define L_print LOCAL(15)
-LOCALLABELS(16);
+#define L_eval LOCAL(16)
+%define L_evalFound LOCAL(17)
+LOCALLABELS(18);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
 #define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 2; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
@@ -61,6 +63,7 @@ LOCALLABELS(16);
 #define skipBlank() CALL(L_skipBlank)
 #define read(_x) CALL(L_read); _x = P31
 #define print(x) P31 = x; CALL(L_print)
+#define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
 DAT_SA(L_STRINGS, T_UINT8, 34);
@@ -147,7 +150,7 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	cons(q, nil, p);
+	eval(q, p, r);
 	print(q);
 	decRef(q);
 	decRef(p);
@@ -531,4 +534,31 @@ beginFunc(L_print); do {
 		}
 		BUG_EXIT();
 	}
+} endFunc();
+
+beginFunc(L_eval); do {
+	VPtr e:P01, a:P02, p:P03;
+	int32s i:R00;
+
+	e = P31; a = P32;
+
+	for (p = a; p != nil; ) {
+		VPtr q:P04, r:P05, s:P06;
+		i = 1; PAPLMEM0(q, T_VPTR, p, i);
+		for (; q != nil; ) {
+			i = 1; PAPLMEM0(r, T_VPTR, q, i);
+			PAPLMEM0(s, T_VPTR, r, i);
+			if (s == e) {
+				i = 2; PAPLMEM0(s, T_VPTR, r, i);
+				i = 1; PAPLMEM0(p, T_VPTR, s, i);
+				goto evalFound;
+			}
+			i = 2; PAPLMEM0(q, T_VPTR, q, i);
+		}
+		i = 2; PAPLMEM0(p, T_VPTR, p, i);
+	}
+LB0(L_evalFound);
+	incRef(p);
+
+	P31 = p;
 } endFunc();
