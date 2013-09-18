@@ -66,7 +66,7 @@ LOCALLABELS(18);
 #define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 27 + 5);
+DAT_SA(L_STRINGS, T_UINT8, 27 + 9);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
@@ -76,9 +76,11 @@ DB(3, 'c', 'd', 'r');
 DB(4, 'c', 'o', 'n', 's');
 
 DB('q', 'u', 'o', 't', 'e');
+DB('q', 'u', 'i', 't');
 DAT_END();
 
 #define OFFSET_QUOTE 27
+#define OFFSET_QUIT 32
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21, symT:P22, staticP:P23, null:P27;
@@ -123,13 +125,20 @@ do {
 	genEnvSub(r, L_cons, 2);
 	incRef(nil); newCons(r, r, nil);
 
+	VPtr s:P04;
+	PLIMM(p, L_STRINGS); PADDI(P31, T_UINT8, p, OFFSET_QUIT); intern(s, 4, P31);
+
 	nextChar();
 
-	read(p);
-	eval(q, p, r);
-	print(q);
-	decRef(q);
-	decRef(p);
+	for (;;) {
+		read(p);
+		if (p == s) break;
+		eval(q, p, r);
+		print(q);
+		decRef(q);
+		decRef(p);
+		junkApi_putchar('\n');
+	}
 }
 
 /*
