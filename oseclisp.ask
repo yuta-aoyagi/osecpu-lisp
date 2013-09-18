@@ -33,23 +33,26 @@
 #define L_intern LOCAL(4)
 %define L_symFound LOCAL(5)
 #define L_staticSym LOCAL(6)
-#define L_atom LOCAL(7)
-#define L_eq LOCAL(8)
-#define L_car LOCAL(9)
-#define L_cdr LOCAL(10)
-#define L_cons LOCAL(11)
-#define L_skipBlank LOCAL(12)
-#define L_read LOCAL(13)
-#define L_print LOCAL(14)
-LOCALLABELS(15);
+#define L_genEnvSub LOCAL(7)
+#define L_atom LOCAL(8)
+#define L_eq LOCAL(9)
+#define L_car LOCAL(10)
+#define L_cdr LOCAL(11)
+#define L_cons LOCAL(12)
+#define L_skipBlank LOCAL(13)
+#define L_read LOCAL(14)
+#define L_print LOCAL(15)
+LOCALLABELS(16);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
 #define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 2; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
 #define newCons(_z, x, y) R30 = 3; R31 = 2; R33 = 1; R34 = 1; P31 = x; P32 = y; CALL(L_newObj); _z = P31
+#define newFunc(_z, l, s, n) R30 = 3; R31 = 3; R32 = 1; R33 = 2; R34 = n; P31 = l; P32 = s; CALL(L_newObj); _z = P31
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define staticSym(_x) CALL(L_staticSym); _x = P31
+#define genEnvSub(a, l, n) P31 = a; PLIMM(P32, l); R30 = n; CALL(L_genEnvSub); a = P31;
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
 #define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define car(_y, x) P31 = x; CALL(L_car); _y = P31
@@ -60,9 +63,11 @@ LOCALLABELS(15);
 #define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 13);
+DAT_SA(L_STRINGS, T_UINT8, 21);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
+DB(4, 'a', 't', 'o', 'm');
+DB(2, 'e', 'q');
 DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
@@ -76,11 +81,12 @@ int32s nextCh:R20, staticI:R21;
  * それぞれのLispのオブジェクトは, 長さ1以上のT_VPTRの配列と長さ2以上のT_SINT32の配列の組で表される.
  * vptr[0]はsint32の先頭へのポインタ.
  * sint32[0]は参照カウント, sint32[1]はオブジェクトの種類を現す整数値である.
- * 今のところ, 0はシンボル, 1はconsセルを表すことにしている.
+ * 今のところ, 0はシンボル, 1はconsセル, 2は組み込み関数を表すことにしている.
  * ここまではすべてのオブジェクトに共通の構造である.
  * シンボルの場合は, vptr[1]にT_UINT8の配列の先頭へのポインタ, vptr[2]に直前に現れた新規のシンボルへのポインタが入る.
  * また, sint32[2]にシンボルの名前文字列の長さがバイト単位で入る.
  * consセルの場合は, vptr[1]とvptr[2]にそれぞれcarとcdrが入る.
+ * 組み込み関数の場合は, vptr[1]に呼び出すラベル, vptr[2]にシンボルへのポインタ, sint32[2]に引数の数が入る.
  */
 
 // main
@@ -98,6 +104,12 @@ do {
 	// シンボル`t'を生成する.
 	staticSym(symT);
 
+	// グローバルの環境を初期化する.
+	VPtr r:P06;
+	incRef(nil); r = nil;
+	genEnvSub(r, L_atom, 1);
+	genEnvSub(r, L_eq, 2);
+
 	// シンボル`symbol'を生成する.
 	VPtr sym:P03;
 	staticSym(sym);
@@ -114,6 +126,8 @@ do {
 	print(cons);
 	junkApi_putchar('\n');
 	print(cons2);
+	junkApi_putchar('\n');
+	print(r);
 
 	// 上のテスト出力に使ったオブジェクトを解放する.
 	// (symはシンボルテーブル内の参照が残るので, 参照カウントが1になり解放されない)
@@ -268,6 +282,22 @@ beginFunc(L_staticSym); do {
 	LMEM0PP(staticI, T_UINT8, staticP);
 	intern(P31, staticI, staticP);
 	PADD(staticP, T_UINT8, staticP, staticI);
+} endFunc();
+
+// 次のシンボルで組み込み関数のオブジェクトを生成して連想リストにつなぐ.
+beginFunc(L_genEnvSub); do {
+	VPtr p:P01, q:P02, a:P03, l:P04;
+	int32s n:R00;
+
+	a = P31;
+	l = P32;
+	n = R30;
+
+	staticSym(p);
+	newFunc(q, l, p, n);
+	incRef(nil); newCons(q, q, nil);
+	incRef(p); newCons(p, p, q);
+	newCons(P31, p, a);
 } endFunc();
 
 /*
@@ -483,6 +513,14 @@ beginFunc(L_print); do {
 				print(q);
 			}
 			junkApi_putchar(')');
+			break;
+		}
+		if (i == 2) {
+			i = 2; PAPLMEM0(P02, T_VPTR, x, i);
+			junkApi_putConstString('builtin-function[');
+			print(P02);
+			PALMEM0(i, T_SINT32, p, i);
+			junkApi_putStringDec(',\1]', i, 11, 1);
 			break;
 		}
 		BUG_EXIT();
