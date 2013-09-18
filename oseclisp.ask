@@ -514,23 +514,32 @@ beginFunc(L_eval); do {
 
 	e = P31; a = P32;
 
-	for (p = a; p != nil; ) {
-		VPtr q:P04, r:P05, s:P06;
-		i = 1; PAPLMEM0(q, T_VPTR, p, i);
-		for (; q != nil; ) {
-			i = 1; PAPLMEM0(r, T_VPTR, q, i);
-			PAPLMEM0(s, T_VPTR, r, i);
-			if (s == e) {
-				i = 2; PAPLMEM0(s, T_VPTR, r, i);
-				i = 1; PAPLMEM0(p, T_VPTR, s, i);
-				goto evalFound;
-			}
-			i = 2; PAPLMEM0(q, T_VPTR, q, i);
-		}
-		i = 2; PAPLMEM0(p, T_VPTR, p, i);
+	if ((e == nil) | (e == symT)) {
+		p = e;
+		goto evalFound;
 	}
+	PLMEM0(p, T_VPTR, e);
+	i = 1; PALMEM0(i, T_SINT32, p, i);
+	if (i == 0) {
+		for (p = a; p != nil; ) {
+			VPtr q:P04, r:P05, s:P06;
+			i = 1; PAPLMEM0(q, T_VPTR, p, i);
+			for (; q != nil; ) {
+				i = 1; PAPLMEM0(r, T_VPTR, q, i);
+				PAPLMEM0(s, T_VPTR, r, i);
+				if (s == e) {
+					i = 2; PAPLMEM0(s, T_VPTR, r, i);
+					i = 1; PAPLMEM0(p, T_VPTR, s, i);
+					goto evalFound;
+				}
+				i = 2; PAPLMEM0(q, T_VPTR, q, i);
+			}
+			i = 2; PAPLMEM0(p, T_VPTR, p, i);
+		}
 LB0(L_evalFound);
-	incRef(p);
-
-	P31 = p;
+		incRef(p);
+		P31 = p;
+		break;
+	}
+	BUG_EXIT();
 } endFunc();
