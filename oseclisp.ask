@@ -66,7 +66,7 @@ LOCALLABELS(18);
 #define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 27 + 9);
+DAT_SA(L_STRINGS, T_UINT8, 27 + 13);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
@@ -76,11 +76,13 @@ DB(3, 'c', 'd', 'r');
 DB(4, 'c', 'o', 'n', 's');
 
 DB('q', 'u', 'o', 't', 'e');
+DB('c', 'o', 'n', 'd');
 DB('q', 'u', 'i', 't');
 DAT_END();
 
 #define OFFSET_QUOTE 27
-#define OFFSET_QUIT 32
+#define OFFSET_COND 32
+#define OFFSET_QUIT 36
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21, symT:P22, staticP:P23, null:P27;
@@ -567,6 +569,34 @@ LB0(L_evalReturn);
 			i = 2; PAPLMEM0(q, T_VPTR, e, i);
 			i = 1; PAPLMEM0(p, T_VPTR, q, i);
 			goto evalReturn;
+		}
+		PLIMM(q, L_STRINGS); PADDI(P31, T_UINT8, q, OFFSET_COND); intern(q, 4, P31);
+		if (p == q) {
+			p = e;
+			for (;;) {
+				i = 2; PAPLMEM0(p, T_VPTR, p, i);
+				if (p == nil) goto evalReturn;
+				PLMEM0(q, T_VPTR, p);
+				i = 1; PALMEM0(i, T_SINT32, q, i);
+				if (i != 1) {
+					print(e); junkApi_putConstString(' is not a valid cond expression.\n');
+					p = nil;
+					goto evalReturn;
+				}
+
+				PAPLMEM0(q, T_VPTR, p, i);
+				PAPLMEM0(r, T_VPTR, q, i);
+				eval(r, r, a);
+				if (r != nil) {
+					decRef(r);
+					i = 2; PAPLMEM0(p, T_VPTR, q, i);
+					i = 1; PAPLMEM0(q, T_VPTR, p, i);
+					eval(P31, q, a);
+					break;
+				}
+				decRef(r);
+			}
+			break;
 		}
 
 		eval(p, p, a);
