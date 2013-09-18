@@ -66,7 +66,7 @@ LOCALLABELS(18);
 #define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 27);
+DAT_SA(L_STRINGS, T_UINT8, 27 + 5);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
@@ -74,7 +74,11 @@ DB(2, 'e', 'q');
 DB(3, 'c', 'a', 'r');
 DB(3, 'c', 'd', 'r');
 DB(4, 'c', 'o', 'n', 's');
+
+DB('q', 'u', 'o', 't', 'e');
 DAT_END();
+
+#define OFFSET_QUOTE 27
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21, symT:P22, staticP:P23, null:P27;
@@ -540,6 +544,21 @@ LB0(L_evalReturn);
 		incRef(p);
 		P31 = p;
 		break;
+	}
+	if (i == 1) {
+		VPtr q:P04;
+		PAPLMEM0(p, T_VPTR, e, i);
+		if ((p == nil) | (p == symT)) {
+			print(p); junkApi_putConstString(' is not a function.\n');
+			p = nil;
+			goto evalReturn;
+		}
+		PLIMM(q, L_STRINGS); PADDI(P31, T_UINT8, q, OFFSET_QUOTE); intern(q, 5, P31);
+		if (p == q) {
+			i = 2; PAPLMEM0(q, T_VPTR, e, i);
+			i = 1; PAPLMEM0(p, T_VPTR, q, i);
+			goto evalReturn;
+		}
 	}
 	BUG_EXIT();
 } endFunc();
