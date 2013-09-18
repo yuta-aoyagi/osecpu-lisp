@@ -32,15 +32,16 @@
 #define L_decRef LOCAL(3)
 #define L_intern LOCAL(4)
 %define L_symFound LOCAL(5)
-#define L_atom LOCAL(6)
-#define L_eq LOCAL(7)
-#define L_car LOCAL(8)
-#define L_cdr LOCAL(9)
-#define L_cons LOCAL(10)
-#define L_skipBlank LOCAL(11)
-#define L_read LOCAL(12)
-#define L_print LOCAL(13)
-LOCALLABELS(14);
+#define L_staticSym LOCAL(6)
+#define L_atom LOCAL(7)
+#define L_eq LOCAL(8)
+#define L_car LOCAL(9)
+#define L_cdr LOCAL(10)
+#define L_cons LOCAL(11)
+#define L_skipBlank LOCAL(12)
+#define L_read LOCAL(13)
+#define L_print LOCAL(14)
+LOCALLABELS(15);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
 #define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 2; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
@@ -48,6 +49,7 @@ LOCALLABELS(14);
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
+#define staticSym(_x) CALL(L_staticSym); _x = P31
 #define atom(_y, x) P31 = x; CALL(L_atom); _y = P31
 #define eq(_z, x, y) P31 = x; P32 = y; CALL(L_eq); _z = P31
 #define car(_y, x) P31 = x; CALL(L_car); _y = P31
@@ -65,8 +67,8 @@ DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
-VPtr lastSym:P20, nil:P21, symT:P22, null:P27;
-int32s nextCh:R20;
+VPtr lastSym:P20, nil:P21, symT:P22, staticP:P23, null:P27;
+int32s nextCh:R20, staticI:R21;
 
 #define nextChar() junkApi_inkey(nextCh, 2)
 
@@ -90,23 +92,15 @@ do {
 	initSymtbl();
 
 	// シンボル`nil'を生成する.
-	PLIMM(q, L_STRINGS);
-	LMEM0PP(i, T_UINT8, q);
-	intern(p, i, q);
-	nil = p;
+	PLIMM(staticP, L_STRINGS);
+	staticSym(nil);
 
 	// シンボル`t'を生成する.
-	PADD(q, T_UINT8, q, i);
-	LMEM0PP(i, T_UINT8, q);
-	intern(p, i, q);
-	symT = p;
+	staticSym(symT);
 
 	// シンボル`symbol'を生成する.
-	PADD(q, T_UINT8, q, i);
-	LMEM0PP(i, T_UINT8, q);
-	intern(p, i, q);
 	VPtr sym:P03;
-	sym = p;
+	staticSym(sym);
 
 	// consセルを2つ生成する.
 	VPtr cons:P04, cons2:P05;
@@ -264,6 +258,16 @@ beginFunc(L_intern); do {
 	newSymbol(len, p);
 	P31 = lastSym;
 LB0(L_symFound);
+} endFunc();
+
+/*
+ * @brief テーブルL_STRINGSから次の文字列を取り出してシンボルを生成する.
+ * @return 生成されたシンボル.
+ */
+beginFunc(L_staticSym); do {
+	LMEM0PP(staticI, T_UINT8, staticP);
+	intern(P31, staticI, staticP);
+	PADD(staticP, T_UINT8, staticP, staticI);
 } endFunc();
 
 /*
