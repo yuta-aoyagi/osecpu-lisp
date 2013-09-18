@@ -66,7 +66,7 @@ LOCALLABELS(18);
 #define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 34);
+DAT_SA(L_STRINGS, T_UINT8, 27);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
@@ -74,7 +74,6 @@ DB(2, 'e', 'q');
 DB(3, 'c', 'a', 'r');
 DB(3, 'c', 'd', 'r');
 DB(4, 'c', 'o', 'n', 's');
-DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
 // グローバルなレジスタ割り当て.
@@ -111,7 +110,7 @@ do {
 	staticSym(symT);
 
 	// グローバルの環境を初期化する.
-	VPtr r:P06;
+	VPtr r:P03;
 	incRef(nil); r = nil;
 	genEnvSub(r, L_atom, 1);
 	genEnvSub(r, L_eq, 2);
@@ -120,36 +119,9 @@ do {
 	genEnvSub(r, L_cons, 2);
 	incRef(nil); newCons(r, r, nil);
 
-	// シンボル`symbol'を生成する.
-	VPtr sym:P03;
-	staticSym(sym);
-
-	// consセルを2つ生成する.
-	VPtr cons:P04, cons2:P05;
-	cons(cons, nil, sym);
-	cons(cons2, cons, sym);
-
-	print(nil);
-	junkApi_putchar('\n');
-	print(sym);
-	junkApi_putchar('\n');
-	print(cons);
-	junkApi_putchar('\n');
-	print(cons2);
-	junkApi_putchar('\n');
-	print(r);
-
-	// 上のテスト出力に使ったオブジェクトを解放する.
-	// (symはシンボルテーブル内の参照が残るので, 参照カウントが1になり解放されない)
-	decRef(cons2); cons2 = null;
-	decRef(cons); cons = null;
-	decRef(sym); sym = null;
-
 	nextChar();
 
 	read(p);
-	print(p);
-	junkApi_putchar('\n');
 	eval(q, p, r);
 	print(q);
 	decRef(q);
