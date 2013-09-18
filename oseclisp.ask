@@ -546,7 +546,7 @@ LB0(L_evalReturn);
 		break;
 	}
 	if (i == 1) {
-		VPtr q:P04;
+		VPtr q:P04, r:P05;
 		PAPLMEM0(p, T_VPTR, e, i);
 		if ((p == nil) | (p == symT)) {
 			print(p); junkApi_putConstString(' is not a function.\n');
@@ -558,6 +558,28 @@ LB0(L_evalReturn);
 			i = 2; PAPLMEM0(q, T_VPTR, e, i);
 			i = 1; PAPLMEM0(p, T_VPTR, q, i);
 			goto evalReturn;
+		}
+
+		eval(p, p, a);
+		PLMEM0(q, T_VPTR, p);
+		i = 1; PALMEM0(i, T_SINT32, q, i);
+		if (i == 2) {
+			int32s j:R01;
+			j = 1; PAPLMEM0(r, T_VPTR, p, j);
+			PALMEM0(i, T_SINT32, q, i);
+			decRef(p);
+			if (i < 1) { BUG_EXIT(); }
+			j = 2; PAPLMEM0(p, T_VPTR, e, j);
+			j = 1; PAPLMEM0(q, T_VPTR, p, j);
+			eval(q, q, a);
+			if (i > 1) {
+				if (i > 2) { BUG_EXIT(); }
+				PAPLMEM0(p, T_VPTR, p, i);
+				PAPLMEM0(p, T_VPTR, p, j);
+				eval(p, p, a);
+			}
+			P31 = q; P32 = p; PCALL(r);
+			break;
 		}
 	}
 	BUG_EXIT();
