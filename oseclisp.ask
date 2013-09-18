@@ -63,11 +63,14 @@ LOCALLABELS(16);
 #define print(x) P31 = x; CALL(L_print)
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 21);
+DAT_SA(L_STRINGS, T_UINT8, 34);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
 DB(2, 'e', 'q');
+DB(3, 'c', 'a', 'r');
+DB(3, 'c', 'd', 'r');
+DB(4, 'c', 'o', 'n', 's');
 DB(6, 's', 'y', 'm', 'b', 'o', 'l');
 DAT_END();
 
@@ -109,6 +112,10 @@ do {
 	incRef(nil); r = nil;
 	genEnvSub(r, L_atom, 1);
 	genEnvSub(r, L_eq, 2);
+	genEnvSub(r, L_car, 1);
+	genEnvSub(r, L_cdr, 1);
+	genEnvSub(r, L_cons, 2);
+	incRef(nil); newCons(r, r, nil);
 
 	// シンボル`symbol'を生成する.
 	VPtr sym:P03;
@@ -140,7 +147,6 @@ do {
 	read(p);
 	print(p);
 	junkApi_putchar('\n');
-	PLIMM(q, L_atom); PLIMM(q, L_eq); PLIMM(q, L_car); PLIMM(q, L_cdr); // すべての関数を少なくとも一度触るため.
 	cons(q, nil, p);
 	print(q);
 	decRef(q);
