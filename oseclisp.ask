@@ -66,7 +66,7 @@ LOCALLABELS(18);
 #define eval(_x, e, a) P31 = e; P32 = a; CALL(L_eval); _x = P31
 
 // シンボルの名前文字列. 長さを8ビットで前に書くので最大255文字まで.
-DAT_SA(L_STRINGS, T_UINT8, 27 + 13);
+DAT_SA(L_STRINGS, T_UINT8, 27 + 27);
 DB(3, 'n', 'i', 'l');
 DB(1, 't');
 DB(4, 'a', 't', 'o', 'm');
@@ -77,12 +77,16 @@ DB(4, 'c', 'o', 'n', 's');
 
 DB('q', 'u', 'o', 't', 'e');
 DB('c', 'o', 'n', 'd');
+DB('l', 'a', 'm', 'b', 'd', 'a');
+DB('f', 'u', 'n', 'c', 't', 'i', 'o', 'n');
 DB('q', 'u', 'i', 't');
 DAT_END();
 
 #define OFFSET_QUOTE 27
 #define OFFSET_COND 32
-#define OFFSET_QUIT 36
+#define OFFSET_LAMBDA 36
+#define OFFSET_FUNCTION 42
+#define OFFSET_QUIT 50
 
 // グローバルなレジスタ割り当て.
 VPtr lastSym:P20, nil:P21, symT:P22, staticP:P23, null:P27;
@@ -558,7 +562,7 @@ LB0(L_evalReturn);
 		break;
 	}
 	if (i == 1) {
-		VPtr q:P04, r:P05;
+		VPtr q:P04, r:P05, s:P06;
 		PAPLMEM0(p, T_VPTR, e, i);
 		if ((p == nil) | (p == symT)) {
 			print(p); junkApi_putConstString(' is not a function.\n');
@@ -599,10 +603,64 @@ LB0(L_evalReturn);
 			}
 			break;
 		}
+		PLIMM(q, L_STRINGS); PADDI(P31, T_UINT8, q, OFFSET_LAMBDA); intern(q, 6, P31);
+		if (p == q) {
+			i = 2; PAPLMEM0(p, T_VPTR, e, i);
+			cons(p, a, p);
+			PLIMM(q, L_STRINGS); PADDI(P31, T_UINT8, q, OFFSET_FUNCTION); intern(q, 8, P31);
+			newCons(P31, q, p);
+			break;
+		}
 
 		eval(p, p, a);
 		PLMEM0(q, T_VPTR, p);
 		i = 1; PALMEM0(i, T_SINT32, q, i);
+		if (i == 1) {
+			PAPLMEM0(q, T_VPTR, p, i);
+			PLIMM(r, L_STRINGS); PADDI(P31, T_UINT8, r, OFFSET_FUNCTION); intern(r, 8, P31);
+			if (q == r) {
+				VPtr t:P07, u:P08, v:P09, w:P0A;
+				int32s j:R01;
+				j = 2; PAPLMEM0(q, T_VPTR, p, j);
+				PAPLMEM0(r, T_VPTR, q, i);	// env
+				PAPLMEM0(q, T_VPTR, q, j);	// (args body)
+				PAPLMEM0(s, T_VPTR, q, i);	// args
+				PAPLMEM0(q, T_VPTR, q, j);
+				PAPLMEM0(q, T_VPTR, q, i);	// body
+				PAPLMEM0(t, T_VPTR, e, j);	// exprs
+				if ((s != nil) & (t != nil)) {
+					newCons(u, null, null);
+					PLMEM0(v, T_VPTR, r); LMEM0(R06, T_SINT32, v); junkApi_putStringDec('[\1]', R06, 11, 1);
+					incRef(r); newCons(r, u, r);
+					for (;;) {	// [iterator]s: args, t: exprs, u: list, [invariant]p: function-expr, q: body, r:env
+						PAPLMEM0(v, T_VPTR, t, i);
+						eval(v, v, a);
+						incRef(nil); newCons(v, v, nil);
+						PAPLMEM0(w, T_VPTR, s, i);
+						incRef(w); newCons(w, w, v);	// w: pair of symbol and expr
+						PAPSMEM0(w, T_VPTR, u, i);
+
+						PAPLMEM0(s, T_VPTR, s, j);
+						PAPLMEM0(t, T_VPTR, t, j);
+						if (s == nil) break;
+						if (t == nil) break;
+
+						newCons(v, null, null);
+						PAPSMEM0(v, T_VPTR, u, j);
+						u = v;
+					}
+					incRef(nil); PAPSMEM0(nil, T_VPTR, u, j);
+				} else {
+					cons(r, nil, r);
+				}
+				junkApi_putchar('<'); print(q); junkApi_putchar(','); print(r); junkApi_putchar2('>', '\n');
+				eval(q, q, r);
+				decRef(p);
+				decRef(r);
+				P31 = q;
+				break;
+			}
+		}
 		if (i == 2) {
 			int32s j:R01;
 			j = 1; PAPLMEM0(r, T_VPTR, p, j);
