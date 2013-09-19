@@ -405,6 +405,7 @@ beginFunc(L_read); do {
 			nextChar();
 			skipBlank();
 			if (nextCh == ')') {
+				nextChar();
 				incRef(nil);
 				p = nil;
 				break;
