@@ -481,48 +481,46 @@ beginFunc(L_print); do {
 	#endif
 
 	i = 1; PALMEM0(i, T_SINT32, p, i);
-	do {
-		if (i == 0) {
-			VPtr q:P02;
-			i = 1; PAPLMEM0(q, T_VPTR, x, i);
-			i = 2; PALMEM0(i, T_SINT32, p, i);
-			junkApi_putString2(i, q);
-			break;
-		}
-		if (i == 1) {
-			p = x;
-			junkApi_putchar('(');
-			VPtr q:P02;
-			for (;;) {
-				VPtr r:P03;
-				i = 1; PAPLMEM0(q, T_VPTR, p, i);
-				print(q);
-
-				i = 2; PAPLMEM0(q, T_VPTR, p, i);
-				PLMEM0(r, T_VPTR, q);
-				i = 1; PALMEM0(i, T_SINT32, r, i);
-				if (i != 1) break;
-
-				junkApi_putchar(' ');
-				p = q;
-			}
-			if (q != nil) {	// 保証されていない比較演算.
-				junkApi_putchar('.');
-				print(q);
-			}
-			junkApi_putchar(')');
-			break;
-		}
-		if (i == 2) {
-			i = 2; PAPLMEM0(P02, T_VPTR, x, i);
-			junkApi_putConstString('builtin-function[');
-			print(P02);
-			PALMEM0(i, T_SINT32, p, i);
-			junkApi_putStringDec(',\1]', i, 11, 1);
-			break;
-		}
-		BUG_EXIT();
+	if (i == 0) {
+		VPtr q:P02;
+		i = 1; PAPLMEM0(q, T_VPTR, x, i);
+		i = 2; PALMEM0(i, T_SINT32, p, i);
+		junkApi_putString2(i, q);
+		break;
 	}
+	if (i == 1) {
+		p = x;
+		junkApi_putchar('(');
+		VPtr q:P02;
+		for (;;) {
+			VPtr r:P03;
+			i = 1; PAPLMEM0(q, T_VPTR, p, i);
+			print(q);
+
+			i = 2; PAPLMEM0(q, T_VPTR, p, i);
+			PLMEM0(r, T_VPTR, q);
+			i = 1; PALMEM0(i, T_SINT32, r, i);
+			if (i != 1) break;
+
+			junkApi_putchar(' ');
+			p = q;
+		}
+		if (q != nil) {	// 保証されていない比較演算.
+			junkApi_putchar('.');
+			print(q);
+		}
+		junkApi_putchar(')');
+		break;
+	}
+	if (i == 2) {
+		i = 2; PAPLMEM0(P02, T_VPTR, x, i);
+		junkApi_putConstString('builtin-function[');
+		print(P02);
+		PALMEM0(i, T_SINT32, p, i);
+		junkApi_putStringDec(',\1]', i, 11, 1);
+		break;
+	}
+	BUG_EXIT();
 } endFunc();
 
 beginFunc(L_eval); do {
