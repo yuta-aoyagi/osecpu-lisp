@@ -30,21 +30,22 @@
 #define L_newObj LOCAL(1)
 #define L_incRef LOCAL(2)
 #define L_decRef LOCAL(3)
-#define L_intern LOCAL(4)
-%define L_symFound LOCAL(5)
-#define L_staticSym LOCAL(6)
-#define L_genEnvSub LOCAL(7)
-#define L_atom LOCAL(8)
-#define L_eq LOCAL(9)
-#define L_car LOCAL(10)
-#define L_cdr LOCAL(11)
-#define L_cons LOCAL(12)
-#define L_skipBlank LOCAL(13)
-#define L_read LOCAL(14)
-#define L_print LOCAL(15)
-#define L_eval LOCAL(16)
-%define L_evalReturn LOCAL(17)
-LOCALLABELS(18);
+#define L_list2 LOCAL(4)
+#define L_intern LOCAL(5)
+%define L_symFound LOCAL(6)
+#define L_staticSym LOCAL(7)
+#define L_genEnvSub LOCAL(8)
+#define L_atom LOCAL(9)
+#define L_eq LOCAL(10)
+#define L_car LOCAL(11)
+#define L_cdr LOCAL(12)
+#define L_cons LOCAL(13)
+#define L_skipBlank LOCAL(14)
+#define L_read LOCAL(15)
+#define L_print LOCAL(16)
+#define L_eval LOCAL(17)
+%define L_evalReturn LOCAL(18)
+LOCALLABELS(19);
 
 #define initSymtbl() R30 = 1; R31 = 3; R32 = 1; R33 = 0; R34 = 0; CALL(L_newObj); lastSym = P31
 #define newSymbol(len, p) R30 = 3; R31 = 3; R32 = 2; R33 = 0; R34 = len; P31 = p; P32 = lastSym; CALL(L_newObj); lastSym = P31
@@ -52,6 +53,7 @@ LOCALLABELS(18);
 #define newFunc(_z, l, s, n) R30 = 3; R31 = 3; R32 = 1; R33 = 2; R34 = n; P31 = l; P32 = s; CALL(L_newObj); _z = P31
 #define incRef(x) P31 = x; CALL(L_incRef)
 #define decRef(x) P31 = x; CALL(L_decRef)
+#define list2(_z, x, y) P31 = x; P32 = y; CALL(L_list2); _z = P31
 #define intern(_s, len, p) R30 = len; P31 = p; CALL(L_intern); _s = P31
 #define staticSym(_x) CALL(L_staticSym); _x = P31
 #define genEnvSub(a, l, n) P31 = a; PLIMM(P32, l); R30 = n; CALL(L_genEnvSub); a = P31;
@@ -240,6 +242,18 @@ beginFunc(L_decRef); do {
 } endFunc();
 
 /*
+ * @brief 指定された2つのオブジェクトからなるリストを生成する.
+ *
+ * xの参照カウントは増やすが, yのは増やさない.
+ */
+beginFunc(L_list2); do {
+	VPtr x:P01, p:P02;
+	x = P31;
+	newCons(p, P32, nil); incRef(nil);
+	incRef(x); newCons(P31, x, p);
+} endFunc();
+
+/*
  * @brief 指定された文字列を名前とするシンボルをシンボルテーブルから探し, なければ新規に登録して返す.
  * @param[in] P31 文字列の先頭へのポインタ.
  * @param[in] R30 文字列の長さ.
@@ -301,8 +315,7 @@ beginFunc(L_genEnvSub); do {
 
 	staticSym(p);
 	newFunc(q, l, p, n);
-	incRef(nil); newCons(q, q, nil);
-	incRef(p); newCons(p, p, q);
+	list2(p, p, q);
 	newCons(P31, p, a);
 } endFunc();
 
@@ -635,9 +648,8 @@ LB0(L_evalReturn);
 					for (;;) {	// [iterator]s: args, t: exprs, u: list, [invariant]p: function-expr, q: body, r:env
 						PAPLMEM0(v, T_VPTR, t, i);
 						eval(v, v, a);
-						incRef(nil); newCons(v, v, nil);
 						PAPLMEM0(w, T_VPTR, s, i);
-						incRef(w); newCons(w, w, v);	// w: pair of symbol and expr
+						list2(w, w, v);	// w: pair of symbol and expr
 						PAPSMEM0(w, T_VPTR, u, i);
 
 						PAPLMEM0(s, T_VPTR, s, j);
