@@ -10,5 +10,10 @@ all: $(APP).ose
 	osectols tool:db2bin in:a_3cas.txt out:a_4ose.ose
 	osectols tool:appack in:a_4ose.ose out:$@
 
+release:
+	make CFLAGS=-DNODBGINFO0
+	osectols tool:appack flags:8 in:$(APP).ose out:$(APP).tk5
+	mv $(APP).tk5 $(APP).ose
+
 clean:
 	-rm a_0ask.txt a_1oas_$(APP).txt a_2cas.txt a_3cas.txt a_3lbl.txt a_4ose.ose
