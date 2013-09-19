@@ -396,75 +396,72 @@ beginFunc(L_skipBlank); do {
  * @retval (P31)読み取られた式.
  */
 beginFunc(L_read); do {
-	VPtr p:P01;
+	VPtr p:P01, q:P02;
+	int32s i:R00;
 
 	skipBlank();
-	do {
-		VPtr q:P02;
-		int32s i:R00;
+	if (nextCh == '(') {
+		VPtr r:P03;
+		int32s c2:R01;	// 定数2.
 
-		if (nextCh == '(') {
-			VPtr r:P03;
-
-			nextChar();
-			skipBlank();
-			if (nextCh == ')') {
-				nextChar();
-				incRef(nil);
-				p = nil;
-				break;
-			}
-			newCons(p, null, null);
-			r = p;
-			for (;;) {
-				read(q);
-				i = 1; PAPSMEM0(q, T_VPTR, p, i);
-				skipBlank();
-				if (nextCh == ')') {
-					incRef(nil);
-					q = nil;
-					nextChar();
-					break;
-				}
-				if (nextCh == '.') {
-					nextChar();
-					read(q);
-					skipBlank();
-					if (nextCh == ')') {
-						nextChar();
-					} else {
-						junkApi_putConstString('Missing \')\'\n');
-					}
-					break;
-				}
-				newCons(q, null, null);
-				i = 2; PAPSMEM0(q, T_VPTR, p, i);
-				p = q;
-			}
-			i = 2; PAPSMEM0(q, T_VPTR, p, i);
-			p = r;
-			break;
-		}
-		if ((nextCh == ')') | (nextCh == '.')) {
-			junkApi_putConstString('Unexpected \'');
-			junkApi_putcharRxx(nextCh);
-			junkApi_putchar2('\'', '\n');
+		nextChar();
+		skipBlank();
+		if (nextCh == ')') {
 			nextChar();
 			incRef(nil);
-			p = nil;
+			P31 = nil;
 			break;
 		}
-		junkApi_malloc(p, T_UINT8, 32);
-		q = p;
-		do {
-			SMEM0PP(nextCh, T_UINT8, q);
-			nextChar();
-			if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
+		i = 1; c2 = 2;	// この2つのレジスタはこのif節の中でこれ以降変化しない.
+		newCons(p, null, null);
+		r = p;
+		for (;;) {
+			read(q);
+			PAPSMEM0(q, T_VPTR, p, i);
+			skipBlank();
+			if (nextCh == ')') {
+				incRef(nil);
+				q = nil;
+				nextChar();
+				break;
+			}
+			if (nextCh == '.') {
+				nextChar();
+				read(q);
+				skipBlank();
+				if (nextCh == ')') {
+					nextChar();
+				} else {
+					junkApi_putConstString('Missing \')\'\n');
+				}
+				break;
+			}
+			newCons(q, null, null);
+			PAPSMEM0(q, T_VPTR, p, c2);
+			p = q;
 		}
-		PDIF(i, T_UINT8, q, p);
-		intern(p, i, p);
+		PAPSMEM0(q, T_VPTR, p, c2);
+		P31 = r;
+		break;
 	}
-	P31 = p;
+	if ((nextCh == ')') | (nextCh == '.')) {
+		junkApi_putConstString('Unexpected \'');
+		junkApi_putcharRxx(nextCh);
+		junkApi_putchar2('\'', '\n');
+		nextChar();
+		incRef(nil);
+		P31 = nil;
+		break;
+	}
+	junkApi_malloc(p, T_UINT8, 32);
+	q = p;
+	do {
+		SMEM0PP(nextCh, T_UINT8, q);
+		nextChar();
+		if ((nextCh > ' ') & (nextCh != '(') & (nextCh != ')') & (nextCh != '.')) continue;
+	}
+	PDIF(i, T_UINT8, q, p);
+	intern(P31, i, p);
 } endFunc();
 
 /*
