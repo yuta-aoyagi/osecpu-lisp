@@ -630,7 +630,6 @@ LB0(L_evalReturn);
 				PAPLMEM0(t, T_VPTR, e, j);	// exprs
 				if ((s != nil) & (t != nil)) {
 					newCons(u, null, null);
-					PLMEM0(v, T_VPTR, r); LMEM0(R06, T_SINT32, v); junkApi_putStringDec('[\1]', R06, 11, 1);
 					incRef(r); newCons(r, u, r);
 					for (;;) {	// [iterator]s: args, t: exprs, u: list, [invariant]p: function-expr, q: body, r:env
 						PAPLMEM0(v, T_VPTR, t, i);
@@ -653,7 +652,6 @@ LB0(L_evalReturn);
 				} else {
 					cons(r, nil, r);
 				}
-				junkApi_putchar('<'); print(q); junkApi_putchar(','); print(r); junkApi_putchar2('>', '\n');
 				eval(q, q, r);
 				decRef(p);
 				decRef(r);
