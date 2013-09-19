@@ -15,5 +15,9 @@ release:
 	osectols tool:appack flags:8 in:$(APP).ose out:$(APP).tk5
 	mv $(APP).tk5 $(APP).ose
 
+test:
+	osecpu $(APP).ose < test_in.l > test_actual.txt
+	diff -ub test_actual.txt test_expect.txt
+
 clean:
 	-rm a_0ask.txt a_1oas_$(APP).txt a_2cas.txt a_3cas.txt a_3lbl.txt a_4ose.ose
