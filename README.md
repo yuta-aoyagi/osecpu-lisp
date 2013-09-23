@@ -17,7 +17,7 @@ OSECPU-Lisp  ver 0.0.1
 - コマンド`make`でデバッグモードでビルド, `make release`ではリリースモードでビルドが行われる.
 - コマンド`make test`で簡単な自動テストを行う.  出力に`make`以外からの出力がなければ正常である.
 
-MS-Windowsユーザは, OSECPU-VMのディレクトリにこの配布物のすべてのファイルを置き`amake oseclisp`でビルドしてもよい.
+MS-Windowsユーザは, OSECPU-VMのディレクトリに`oseclisp.ask`を置き`amake oseclisp`でビルドしてもよい.
 
 使用方法
 --------
