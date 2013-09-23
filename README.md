@@ -4,8 +4,9 @@ OSECPU-Lisp  ver 0.0.1
 
 配布物について
 --------------
-このリポジトリには次のファイルが含まれている: `.gitignore`, `Makefile`, `oseclisp.ask`, `test_expect.txt`, `test_in.l`.
+このリポジトリには次のファイルが含まれている: `.gitignore`, `Makefile`, `oseclisp.ask`, `test_expect.txt`, `test_in.l`, `tutorial.md`.
 `oseclisp.ask`がインタプリタの本体, `test_in.l`は自動テストの入力ファイル, `test_expect.txt`はそれに対して期待される出力である.
+この処理系への導入は`tutorial.md`を参照せよ.
 このリポジトリに含まれるすべてのファイルに3-clause BSD licenseを適用する.
 
 このインタプリタはOSECPU-VMのバージョン0.76で開発・テストされている.
